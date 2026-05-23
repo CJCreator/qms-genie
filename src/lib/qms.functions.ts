@@ -126,7 +126,7 @@ export const startGeneration = createServerFn({ method: "POST" })
         project_id: data.project_id,
         created_by: userId,
         version,
-        status: "running",
+        status: "rendering",
         progress: { done: 0, total: selected.length },
       })
       .select("id")
