@@ -1,0 +1,187 @@
+import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { generateBundle, type ProjectData } from "./generation.server";
+import { TEMPLATES } from "./templates";
+
+// List user's projects (in their workspaces).
+export const listProjects = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase } = context;
+    const { data, error } = await supabase
+      .from("projects")
+      .select("id, name, status, current_step, updated_at, workspace_id")
+      .order("updated_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
+export const getWorkspaces = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase } = context;
+    const { data, error } = await supabase.from("workspaces").select("id, name, plan");
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
+export const createProject = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { name: string; workspace_id: string }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: row, error } = await supabase
+      .from("projects")
+      .insert({ name: data.name, workspace_id: data.workspace_id, created_by: userId })
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+    return row;
+  });
+
+export const getProject = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: row, error } = await supabase
+      .from("projects")
+      .select("*")
+      .eq("id", data.id)
+      .single();
+    if (error) throw new Error(error.message);
+    return row;
+  });
+
+export const saveProject = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (d: {
+      id: string;
+      organisation_profile?: any;
+      device_portfolio?: any;
+      department_scope?: any;
+      department_inputs?: any;
+      current_step?: number;
+    }) => d,
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { id, ...patch } = data;
+    const { error } = await supabase.from("projects").update(patch).eq("id", id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const listGenerationRuns = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { project_id: string }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: rows, error } = await supabase
+      .from("generation_runs")
+      .select("id, status, version, started_at, finished_at, bundle_path, summary, error")
+      .eq("project_id", data.project_id)
+      .order("started_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
+export const startGeneration = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { project_id: string }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+
+    // load project (RLS scoped)
+    const { data: project, error: pErr } = await supabase
+      .from("projects")
+      .select("*")
+      .eq("id", data.project_id)
+      .single();
+    if (pErr || !project) throw new Error(pErr?.message || "Project not found");
+
+    // pick templates by department scope (or all if none chosen)
+    const scope: string[] = (project.department_scope as any[])?.length
+      ? ((project.department_scope as unknown) as string[])
+      : [];
+    const selected = TEMPLATES.filter((t) =>
+      scope.length === 0 ? true : scope.includes(t.meta.department),
+    ).map((t) => t.meta.document_code);
+
+    // next version
+    const { data: prev } = await supabase
+      .from("generation_runs")
+      .select("version")
+      .eq("project_id", data.project_id)
+      .order("version", { ascending: false })
+      .limit(1);
+    const version = ((prev?.[0] as any)?.version ?? 0) + 1;
+
+    // create run row
+    const { data: run, error: rErr } = await supabase
+      .from("generation_runs")
+      .insert({
+        project_id: data.project_id,
+        created_by: userId,
+        version,
+        status: "rendering",
+        progress: { done: 0, total: selected.length },
+      })
+      .select("id")
+      .single();
+    if (rErr || !run) throw new Error(rErr?.message || "Could not start run");
+
+    try {
+      const result = await generateBundle(project as unknown as ProjectData, selected);
+      const path = `${data.project_id}/${run.id}.zip`;
+      const { error: upErr } = await supabaseAdmin.storage
+        .from("qms-bundles")
+        .upload(path, result.zip, {
+          contentType: "application/zip",
+          upsert: true,
+        });
+      if (upErr) throw new Error(upErr.message);
+
+      await supabase
+        .from("generation_runs")
+        .update({
+          status: "succeeded",
+          finished_at: new Date().toISOString(),
+          bundle_path: path,
+          summary: { documents: result.entries.length, codes: result.entries.map((e) => e.code) },
+        })
+        .eq("id", run.id);
+
+      return { run_id: run.id, documents: result.entries.length, path };
+    } catch (e: any) {
+      await supabase
+        .from("generation_runs")
+        .update({
+          status: "failed",
+          finished_at: new Date().toISOString(),
+          error: String(e?.message || e),
+        })
+        .eq("id", run.id);
+      throw e;
+    }
+  });
+
+export const getBundleUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { run_id: string }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: run, error } = await supabase
+      .from("generation_runs")
+      .select("bundle_path, project_id")
+      .eq("id", data.run_id)
+      .single();
+    if (error || !run?.bundle_path) throw new Error("Bundle not found");
+    const { data: signed, error: sErr } = await supabaseAdmin.storage
+      .from("qms-bundles")
+      .createSignedUrl(run.bundle_path, 60 * 10);
+    if (sErr || !signed) throw new Error(sErr?.message || "Signed URL failed");
+    return { url: signed.signedUrl };
+  });
