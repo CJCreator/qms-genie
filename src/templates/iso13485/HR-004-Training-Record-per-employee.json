@@ -1,0 +1,112 @@
+{
+  "meta": {
+    "document_code": "HR-004",
+    "document_name": "Training Record (per employee)",
+    "department": "HR",
+    "iso_clauses": [
+      "6.2"
+    ],
+    "default_prepared_by_role": "HR Lead",
+    "default_approved_by_role": "QA Director",
+    "retention_period": "Life of device + 10 years",
+    "applicable_device_types": [
+      "hardware",
+      "software",
+      "hims",
+      "combination"
+    ],
+    "applicable_markets": [
+      "EU",
+      "US",
+      "UK",
+      "global"
+    ]
+  },
+  "inputs": [
+    {
+      "id": "company_legal_name",
+      "label": "Company Legal Name",
+      "type": "text",
+      "required": true,
+      "source": "company_profile"
+    },
+    {
+      "id": "device_name_model",
+      "label": "Device Name & Model",
+      "type": "text",
+      "required": true,
+      "source": "device_record"
+    },
+    {
+      "id": "qa_manager_name",
+      "label": "QA Manager Name",
+      "type": "text",
+      "required": true,
+      "source": "company_profile"
+    }
+  ],
+  "sections": [
+    {
+      "id": "header",
+      "title": "",
+      "type": "static",
+      "content": "ISO 13485:2016\nTraining Record (per employee)\nDocument Code: HR-004\nRevision: {revision_number}"
+    },
+    {
+      "id": "purpose",
+      "title": "1. Purpose",
+      "type": "ai_generated",
+      "section_prompt": "Draft a clear, regulatory-compliant purpose statement for the Training Record (per employee) document under ISO 13485:2016 for a medical device company.",
+      "editable": true
+    },
+    {
+      "id": "scope",
+      "title": "2. Scope",
+      "type": "variable",
+      "content": "This document establishes the training record (per employee) for {company_legal_name} and applies to all relevant QMS processes."
+    },
+    {
+      "id": "responsibilities",
+      "title": "3. Responsibilities",
+      "type": "static",
+      "content": "Prepared by: {default_prepared_by_role}\nApproved by: {default_approved_by_role}"
+    },
+    {
+      "id": "approval_block",
+      "title": "",
+      "type": "approval_block"
+    },
+    {
+      "id": "revision_history",
+      "title": "Revision History",
+      "type": "table",
+      "table_source": "revision_history"
+    }
+  ],
+  "validation_rules": {
+    "emits": [
+      "hr-004_approval",
+      "role_names"
+    ],
+    "consumes": [
+      "qa_manager_role_name",
+      "company_legal_name"
+    ],
+    "required_sections_for_markets": {
+      "EU": [
+        "scope",
+        "purpose"
+      ],
+      "US": [
+        "scope",
+        "purpose"
+      ]
+    }
+  },
+  "dependencies": [],
+  "output_config": {
+    "page_size": "A4",
+    "header": "{company_legal_name} | HR-004 | Rev {revision_number}",
+    "footer": "CONFIDENTIAL \u2014 Controlled Document | ISO 13485:2016"
+  }
+}
