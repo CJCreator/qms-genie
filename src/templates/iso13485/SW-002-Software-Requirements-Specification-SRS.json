@@ -3,110 +3,69 @@
     "document_code": "SW-002",
     "document_name": "Software Requirements Specification (SRS)",
     "department": "SW",
-    "iso_clauses": [
-      "7.3.2"
-    ],
-    "default_prepared_by_role": "SW Lead",
+    "iso_clauses": ["7.3.3"],
+    "default_prepared_by_role": "Software Lead",
     "default_approved_by_role": "QA Director",
     "retention_period": "Life of device + 10 years",
-    "applicable_device_types": [
-      "hardware",
-      "software",
-      "hims",
-      "combination"
-    ],
-    "applicable_markets": [
-      "EU",
-      "US",
-      "UK",
-      "global"
-    ]
+    "applicable_device_types": ["software", "hims", "combination"],
+    "applicable_markets": ["EU", "US", "UK", "global"]
   },
   "inputs": [
-    {
-      "id": "company_legal_name",
-      "label": "Company Legal Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    },
-    {
-      "id": "device_name_model",
-      "label": "Device Name & Model",
-      "type": "text",
-      "required": true,
-      "source": "device_record"
-    },
-    {
-      "id": "qa_manager_name",
-      "label": "QA Manager Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    }
+    { "id": "company_legal_name", "label": "Company Legal Name", "type": "text", "required": true, "source": "company_profile" },
+    { "id": "device_name_model", "label": "Software / Device Name", "type": "text", "required": true, "source": "device_record" },
+    { "id": "software_safety_class", "label": "IEC 62304 Safety Class", "type": "text", "required": true, "source": "device_record" }
   ],
   "sections": [
+    { "id": "header", "title": "", "type": "static", "content": "IEC 62304 \u00a75.2 \u2014 Software Requirements Specification\nDocument Code: SW-002\nRevision: {revision_number}\nSoftware: {device_name_model} | Class {software_safety_class}" },
+    { "id": "purpose", "title": "1. Purpose", "type": "ai_generated", "section_prompt": "State that this SRS defines functional, performance, interface, safety, security, and regulatory requirements for {device_name_model} and derives from system inputs in {ref:RD-002} and risk controls in {ref:RD-007}." },
+    { "id": "scope", "title": "2. Scope", "type": "variable", "content": "Applies to all software requirements for {device_name_model} traced to architecture {ref:SW-003} and verified through {ref:SW-005}, {ref:SW-006}, {ref:SW-007}." },
     {
-      "id": "header",
-      "title": "",
-      "type": "static",
-      "content": "ISO 13485:2016\nSoftware Requirements Specification (SRS)\nDocument Code: SW-002\nRevision: {revision_number}"
+      "id": "categories",
+      "title": "3. Requirement Categories (IEC 62304 \u00a75.2.2)",
+      "type": "clause_block",
+      "clauses": [
+        "3.1 Functional and capability requirements",
+        "3.2 Software system inputs and outputs",
+        "3.3 Interfaces between software and other systems",
+        "3.4 Software-driven alarms, warnings, operator messages",
+        "3.5 Security requirements (authentication, authorisation, audit, data integrity, confidentiality)",
+        "3.6 Usability engineering requirements (IEC 62366-1)",
+        "3.7 Data definition and database requirements",
+        "3.8 Installation and acceptance requirements",
+        "3.9 Methods of operation and maintenance",
+        "3.10 Networking / interoperability requirements",
+        "3.11 Risk-control requirements traced from {ref:RD-007}",
+        "3.12 Regulatory requirements"
+      ],
+      "section_prompt": "For each category provide 1\u20132 sentences describing how it applies to {device_name_model}. Note any categories not applicable with justification."
     },
     {
-      "id": "purpose",
-      "title": "1. Purpose",
-      "type": "ai_generated",
-      "section_prompt": "Draft a clear, regulatory-compliant purpose statement for the Software Requirements Specification (SRS) document under ISO 13485:2016 for a medical device company.",
-      "editable": true
+      "id": "requirements_table",
+      "title": "4. Software Requirements Register",
+      "type": "table_spec",
+      "columns": [
+        { "key": "sw_req_id", "label": "SW-Req ID", "width": 900 },
+        { "key": "category", "label": "Category", "width": 1500 },
+        { "key": "requirement", "label": "Requirement (SHALL)", "width": 3600 },
+        { "key": "priority", "label": "Priority", "width": 900 },
+        { "key": "traced_from", "label": "Traced From", "width": 1500 },
+        { "key": "verification_method", "label": "Verification", "width": 1160 }
+      ],
+      "ai_rows_prompt": "Generate 15\u201322 software requirements for {device_name_model} (Class {software_safety_class}) covering all categories above. IDs SR-001 sequential. Priority Must/Should. Traced From cites REQ-xxx from {ref:RD-002} or HZ-xxx risk control from {ref:RD-007}. Verification one of Unit Test, Integration Test, System Test, Inspection, Analysis. Return JSON array.",
+      "min_rows": 15
     },
-    {
-      "id": "scope",
-      "title": "2. Scope",
-      "type": "variable",
-      "content": "This document establishes the software requirements specification (srs) for {company_legal_name} and applies to all relevant QMS processes."
-    },
-    {
-      "id": "responsibilities",
-      "title": "3. Responsibilities",
-      "type": "static",
-      "content": "Prepared by: {default_prepared_by_role}\nApproved by: {default_approved_by_role}"
-    },
-    {
-      "id": "approval_block",
-      "title": "",
-      "type": "approval_block"
-    },
-    {
-      "id": "revision_history",
-      "title": "Revision History",
-      "type": "table",
-      "table_source": "revision_history"
-    }
+    { "id": "approval_block", "title": "", "type": "approval_block" },
+    { "id": "revision_history", "title": "Revision History", "type": "table", "table_source": "revision_history" }
   ],
   "validation_rules": {
-    "emits": [
-      "sw-002_approval",
-      "role_names"
-    ],
-    "consumes": [
-      "qa_manager_role_name",
-      "company_legal_name"
-    ],
-    "required_sections_for_markets": {
-      "EU": [
-        "scope",
-        "purpose"
-      ],
-      "US": [
-        "scope",
-        "purpose"
-      ]
-    }
+    "emits": ["sw_requirements_baseline"],
+    "consumes": ["software_plan_baseline", "risk_baseline"],
+    "required_sections_for_markets": { "EU": ["requirements_table"], "US": ["requirements_table"] }
   },
-  "dependencies": [],
+  "dependencies": ["SW-001", "RD-002", "RD-007"],
   "output_config": {
     "page_size": "A4",
-    "header": "{company_legal_name} | SW-002 | Rev {revision_number}",
-    "footer": "CONFIDENTIAL \u2014 Controlled Document | ISO 13485:2016"
+    "header": "{company_legal_name} | SW-002 SRS | {device_name_model} | Rev {revision_number}",
+    "footer": "CONFIDENTIAL \u2014 Controlled Document | IEC 62304 \u00a75.2"
   }
 }
