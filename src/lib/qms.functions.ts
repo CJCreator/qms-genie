@@ -433,9 +433,103 @@ export const deleteProject = createServerFn({ method: "POST" })
   .inputValidator((d: { id: string }) => d)
   .handler(async ({ data, context }) => {
     const { supabase } = context;
-    // Storage objects + child rows (runs, docs, findings) can be left to a
-    // future cleanup job; RLS already scopes visibility to workspace members.
     const { error } = await supabase.from("projects").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// ============= Documents Repository (workspace-wide) =============
+
+export const listWorkspaceDocuments = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (d: {
+      workspace_id?: string;
+      project_id?: string;
+      status?: string;
+      department?: string;
+      q?: string;
+    }) => d,
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    let projectQ = supabase.from("projects").select("id, name, workspace_id");
+    if (data.workspace_id) projectQ = projectQ.eq("workspace_id", data.workspace_id);
+    if (data.project_id) projectQ = projectQ.eq("id", data.project_id);
+    const { data: projects, error: pErr } = await projectQ;
+    if (pErr) throw new Error(pErr.message);
+    const projectIds = (projects ?? []).map((p: any) => p.id);
+    if (!projectIds.length) return { documents: [], projects: [] };
+
+    let q = supabase
+      .from("generated_documents")
+      .select(
+        "id, template_code, status, created_at, run_id, storage_path, content, project_id, released_at, archived_at, superseded_by_id",
+      )
+      .in("project_id", projectIds)
+      .order("template_code", { ascending: true })
+      .order("created_at", { ascending: false })
+      .limit(2000);
+    if (data.status) q = q.eq("status", data.status);
+    if (data.q) q = q.ilike("template_code", `%${data.q}%`);
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
+
+    const runIds = Array.from(new Set((rows ?? []).map((r: any) => r.run_id)));
+    let versionMap: Record<string, number> = {};
+    if (runIds.length) {
+      const { data: rs } = await supabase
+        .from("generation_runs")
+        .select("id, version")
+        .in("id", runIds);
+      versionMap = Object.fromEntries((rs ?? []).map((r: any) => [r.id, r.version]));
+    }
+    const projectMap = Object.fromEntries(
+      (projects ?? []).map((p: any) => [p.id, p.name]),
+    );
+    let docs = (rows ?? []).map((r: any) => ({
+      ...r,
+      version: versionMap[r.run_id] ?? null,
+      project_name: projectMap[r.project_id] ?? "—",
+    }));
+    if (data.department) {
+      docs = docs.filter((d: any) => d.template_code?.startsWith(data.department!));
+    }
+    return { documents: docs, projects: projects ?? [] };
+  });
+
+export const updateDocumentStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (d: {
+      document_id: string;
+      status: "rendered" | "released" | "superseded" | "obsolete";
+    }) => d,
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const patch: any = { status: data.status };
+    if (data.status === "released") {
+      patch.released_at = new Date().toISOString();
+      patch.released_by = userId;
+    }
+    const { error } = await supabase
+      .from("generated_documents")
+      .update(patch)
+      .eq("id", data.document_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const archiveDocument = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { document_id: string }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { error } = await supabase
+      .from("generated_documents")
+      .update({ status: "obsolete", archived_at: new Date().toISOString() })
+      .eq("id", data.document_id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
