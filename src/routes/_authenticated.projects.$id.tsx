@@ -67,7 +67,7 @@ function ProjectPage() {
   const runsQ = useQuery({
     queryKey: ["runs", id],
     queryFn: () => runs({ data: { project_id: id } }),
-    refetchInterval: 4000,
+    refetchInterval: 2000,
   });
   const findingsQ = useQuery({
     queryKey: ["findings", id],
