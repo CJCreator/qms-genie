@@ -54,6 +54,8 @@ function ProjectPage() {
   const runs = useServerFn(listGenerationRuns);
   const start = useServerFn(startGeneration);
   const bundleUrl = useServerFn(getBundleUrl);
+  const findingsFn = useServerFn(listFindings);
+  const planFn = useServerFn(planGeneration);
 
   const projectQ = useQuery({ queryKey: ["project", id], queryFn: () => get({ data: { id } }) });
   const runsQ = useQuery({
@@ -61,12 +63,18 @@ function ProjectPage() {
     queryFn: () => runs({ data: { project_id: id } }),
     refetchInterval: 4000,
   });
+  const findingsQ = useQuery({
+    queryKey: ["findings", id],
+    queryFn: () => findingsFn({ data: { project_id: id } }),
+    refetchInterval: 6000,
+  });
 
   const [step, setStep] = useState(1);
   const [org, setOrg] = useState<any>({});
   const [devices, setDevices] = useState<any[]>([]);
   const [scope, setScope] = useState<string[]>([]);
   const [inputs, setInputs] = useState<Record<string, string>>({});
+  const [docFilter, setDocFilter] = useState("");
 
   useEffect(() => {
     const p = projectQ.data as Project;
@@ -95,12 +103,22 @@ function ProjectPage() {
   });
 
   const genM = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (args?: { scope: "all" | "department" | "document"; targets?: string[] }) => {
       await saveM.mutateAsync({});
-      return start({ data: { project_id: id } });
+      return start({ data: { project_id: id, ...(args ?? {}) } });
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["runs", id] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["runs", id] });
+      qc.invalidateQueries({ queryKey: ["findings", id] });
+    },
   });
+
+  async function previewPlan(scopeType: "all" | "department" | "document", targets: string[]) {
+    const p = await planFn({ data: { scope: scopeType, targets } });
+    alert(
+      `${p.total} documents will be generated.\nAuto-added via dependencies: ${p.added_by_dependency.length}\n\nCodes:\n${p.codes.join(", ")}`,
+    );
+  }
 
   async function download(run_id: string) {
     const { url } = await bundleUrl({ data: { run_id } });
