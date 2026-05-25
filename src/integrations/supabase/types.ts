@@ -90,33 +90,45 @@ export type Database = {
       }
       generated_documents: {
         Row: {
+          archived_at: string | null
           content: Json
           created_at: string
           id: string
           project_id: string
+          released_at: string | null
+          released_by: string | null
           run_id: string
           status: string
           storage_path: string | null
+          superseded_by_id: string | null
           template_code: string
         }
         Insert: {
+          archived_at?: string | null
           content?: Json
           created_at?: string
           id?: string
           project_id: string
+          released_at?: string | null
+          released_by?: string | null
           run_id: string
           status?: string
           storage_path?: string | null
+          superseded_by_id?: string | null
           template_code: string
         }
         Update: {
+          archived_at?: string | null
           content?: Json
           created_at?: string
           id?: string
           project_id?: string
+          released_at?: string | null
+          released_by?: string | null
           run_id?: string
           status?: string
           storage_path?: string | null
+          superseded_by_id?: string | null
           template_code?: string
         }
         Relationships: [
@@ -132,6 +144,13 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "generation_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_documents_superseded_by_id_fkey"
+            columns: ["superseded_by_id"]
+            isOneToOne: false
+            referencedRelation: "generated_documents"
             referencedColumns: ["id"]
           },
           {

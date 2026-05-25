@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, useNavigate, Link, useRouter } from "@tanstack
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, FileCheck2, LogOut } from "lucide-react";
+import { ShieldCheck, FileCheck2, FolderOpen, LogOut } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated")({
   component: AuthLayout,
@@ -49,6 +49,9 @@ function AuthLayout() {
             ISO 13485 QMS Platform
           </Link>
           <div className="flex items-center gap-3 text-sm">
+            <Link to="/documents" className="text-muted-foreground hover:text-foreground flex items-center gap-1">
+              <FolderOpen className="h-4 w-4" /> Documents
+            </Link>
             <Link to="/templates" className="text-muted-foreground hover:text-foreground flex items-center gap-1">
               <FileCheck2 className="h-4 w-4" /> Templates
             </Link>
