@@ -431,6 +431,39 @@ function ProjectPage() {
         </CardContent>
       </Card>
 
+      {(() => {
+        const live = (runsQ.data as any[])?.find((r) => r.status === "rendering");
+        if (!live) return null;
+        const p = live.progress || {};
+        const pct = p.total ? Math.round((p.done / p.total) * 100) : 0;
+        return (
+          <Card className="border-primary/40">
+            <CardContent className="py-4 space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  <span className="font-medium">Generating v{live.version}…</span>
+                  {p.current ? (
+                    <span className="text-xs text-muted-foreground">
+                      currently: {p.current}
+                    </span>
+                  ) : null}
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  {p.done ?? 0} / {p.total ?? "?"} · {pct}%
+                </span>
+              </div>
+              <div className="h-2 rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full bg-primary transition-all"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
+
       <div>
         <h2 className="text-lg font-semibold mb-2">Generation runs</h2>
         {runsQ.data?.length ? (
