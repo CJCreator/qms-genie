@@ -3,110 +3,53 @@
     "document_code": "QF-002",
     "document_name": "Quality Objectives Tracking Sheet",
     "department": "QMS",
-    "iso_clauses": [
-      "5.4"
-    ],
+    "iso_clauses": ["5.4.1", "8.2.3", "8.4"],
     "default_prepared_by_role": "QA Manager",
-    "default_approved_by_role": "CEO / Top Management",
+    "default_approved_by_role": "QA Director",
     "retention_period": "Permanent",
-    "applicable_device_types": [
-      "hardware",
-      "software",
-      "hims",
-      "combination"
-    ],
-    "applicable_markets": [
-      "EU",
-      "US",
-      "UK",
-      "global"
-    ]
+    "applicable_device_types": ["hardware", "software", "hims", "combination"],
+    "applicable_markets": ["EU", "US", "UK", "global"]
   },
   "inputs": [
-    {
-      "id": "company_legal_name",
-      "label": "Company Legal Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    },
-    {
-      "id": "device_name_model",
-      "label": "Device Name & Model",
-      "type": "text",
-      "required": true,
-      "source": "device_record"
-    },
-    {
-      "id": "qa_manager_name",
-      "label": "QA Manager Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    }
+    { "id": "company_legal_name", "label": "Company Legal Name", "type": "text", "required": true, "source": "company_profile" }
   ],
   "sections": [
-    {
-      "id": "header",
-      "title": "",
-      "type": "static",
-      "content": "ISO 13485:2016\nQuality Objectives Tracking Sheet\nDocument Code: QF-002\nRevision: {revision_number}"
-    },
-    {
-      "id": "purpose",
-      "title": "1. Purpose",
+    { "id": "purpose", "title": "1. Purpose",
       "type": "ai_generated",
-      "section_prompt": "Draft a clear, regulatory-compliant purpose statement for the Quality Objectives Tracking Sheet document under ISO 13485:2016 for a medical device company.",
-      "editable": true
+      "section_prompt": "One paragraph: this sheet tracks Quality Objectives defined in {ref:QP-002} with monthly status, reviewed at Management Review {ref:QP-005}." },
+    { "id": "tracking", "title": "2. Objective Tracking",
+      "type": "table_spec",
+      "columns": [
+        { "key": "objective", "label": "Objective" },
+        { "key": "metric", "label": "Metric" },
+        { "key": "target", "label": "Target" },
+        { "key": "current", "label": "Current" },
+        { "key": "trend", "label": "Trend" },
+        { "key": "owner", "label": "Owner" },
+        { "key": "status", "label": "Status (Green/Amber/Red)" },
+        { "key": "actions", "label": "Actions / CAPA Ref" }
+      ],
+      "ai_rows_prompt": "Mirror the SMART objectives from {ref:QP-002} (CAPA cycle time, supplier OTIF, complaint SLA, audit completion, training compliance, PMS cadence, software defect escape rate if applicable). For each: provide a realistic current value, a Green/Amber/Red status with one-line justification, and a CAPA reference if Amber/Red.",
+      "min_rows": 6
     },
-    {
-      "id": "scope",
-      "title": "2. Scope",
-      "type": "variable",
-      "content": "This document establishes the quality objectives tracking sheet for {company_legal_name} and applies to all relevant QMS processes."
-    },
-    {
-      "id": "responsibilities",
-      "title": "3. Responsibilities",
-      "type": "static",
-      "content": "Prepared by: {default_prepared_by_role}\nApproved by: {default_approved_by_role}"
-    },
-    {
-      "id": "approval_block",
-      "title": "",
-      "type": "approval_block"
-    },
-    {
-      "id": "revision_history",
-      "title": "Revision History",
-      "type": "table",
-      "table_source": "revision_history"
+    { "id": "trend_summary", "title": "3. Trend Summary and Escalations",
+      "type": "ai_generated",
+      "section_prompt": "Two short paragraphs: overall trend across objectives this period and any items escalated to Management Review or opened as CAPA via {ref:CA-001}." },
+    { "id": "approval_block", "title": "Approval", "type": "approval_block" },
+    { "id": "revision_history", "title": "Revision History",
+      "type": "table_spec",
+      "columns": [
+        { "key": "rev", "label": "Rev" }, { "key": "date", "label": "Date" },
+        { "key": "author", "label": "Author" }, { "key": "summary", "label": "Change Summary" }
+      ],
+      "rows": [{ "rev": "1.0", "date": "{effective_date}", "author": "{qa_manager_name}", "summary": "Initial issue." }]
     }
   ],
-  "validation_rules": {
-    "emits": [
-      "qf-002_approval",
-      "role_names"
-    ],
-    "consumes": [
-      "qa_manager_role_name",
-      "company_legal_name"
-    ],
-    "required_sections_for_markets": {
-      "EU": [
-        "scope",
-        "purpose"
-      ],
-      "US": [
-        "scope",
-        "purpose"
-      ]
-    }
-  },
-  "dependencies": [],
+  "validation_rules": { "emits": ["objectives_tracking"], "consumes": ["qa_manager_name"] },
+  "dependencies": ["QP-002", "QP-005", "CA-001"],
   "output_config": {
     "page_size": "A4",
-    "header": "{company_legal_name} | QF-002 | Rev {revision_number}",
-    "footer": "CONFIDENTIAL \u2014 Controlled Document | ISO 13485:2016"
+    "header": "{company_legal_name} | QF-002 Quality Objectives Tracking | Rev {revision_number}",
+    "footer": "CONFIDENTIAL — Controlled Record"
   }
 }
