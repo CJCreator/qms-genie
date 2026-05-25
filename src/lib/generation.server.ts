@@ -17,6 +17,7 @@ import {
   Header,
   Footer,
   PageNumber,
+  ShadingType,
 } from "docx";
 import JSZip from "jszip";
 import ExcelJS from "exceljs";
