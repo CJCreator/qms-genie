@@ -28,6 +28,24 @@ export type TemplateSection =
       rows?: Record<string, string>[]; // static rows
       ai_rows_prompt?: string; // if set, AI fills rows as JSON
       min_rows?: number;
+    }
+  | {
+      id: string;
+      title: string;
+      type: "risk_table";
+      columns: { key: string; label: string; width?: number }[];
+      rows?: Record<string, string>[];
+      ai_rows_prompt?: string;
+      min_rows?: number;
+    }
+  | {
+      id: string;
+      title: string;
+      type: "traceability_matrix";
+      columns: { key: string; label: string; width?: number }[];
+      rows?: Record<string, string>[];
+      ai_rows_prompt?: string;
+      min_rows?: number;
     };
 
 export interface TemplateInput {
@@ -69,8 +87,9 @@ export const TEMPLATES: DocumentTemplate[] = Object.values(modules).sort((a, b) 
   a.meta.document_code.localeCompare(b.meta.document_code),
 );
 
-export const TEMPLATES_BY_CODE: Record<string, DocumentTemplate> =
-  Object.fromEntries(TEMPLATES.map((t) => [t.meta.document_code, t]));
+export const TEMPLATES_BY_CODE: Record<string, DocumentTemplate> = Object.fromEntries(
+  TEMPLATES.map((t) => [t.meta.document_code, t]),
+);
 
 export const DEPARTMENTS: { code: string; name: string }[] = (() => {
   const map: Record<string, string> = {

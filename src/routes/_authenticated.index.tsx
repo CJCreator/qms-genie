@@ -13,16 +13,23 @@ import { FilePlus2, FolderOpen } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/")({
   component: Dashboard,
+  validateSearch: (s: Record<string, unknown>) => ({
+    workspace_id: typeof s.workspace_id === "string" ? s.workspace_id : undefined,
+  }),
 });
 
 function Dashboard() {
+  const { workspace_id } = Route.useSearch();
   const list = useServerFn(listProjects);
   const ws = useServerFn(getWorkspaces);
   const create = useServerFn(createProject);
   const qc = useQueryClient();
   const navigate = useNavigate();
 
-  const projects = useQuery({ queryKey: ["projects"], queryFn: () => list() });
+  const projects = useQuery({
+    queryKey: ["projects", workspace_id],
+    queryFn: () => list({ data: { workspace_id: workspace_id ?? undefined } }),
+  });
   const workspaces = useQuery({ queryKey: ["workspaces"], queryFn: () => ws() });
 
   const [open, setOpen] = useState(false);
@@ -30,9 +37,9 @@ function Dashboard() {
 
   const m = useMutation({
     mutationFn: async () => {
-      const w = workspaces.data?.[0];
-      if (!w) throw new Error("No workspace yet — refresh in a moment.");
-      return create({ data: { name, workspace_id: w.id } });
+      const workspaceIdToUse = workspace_id ?? workspaces.data?.[0]?.id;
+      if (!workspaceIdToUse) throw new Error("No workspace yet — refresh in a moment.");
+      return create({ data: { name, workspace_id: workspaceIdToUse } });
     },
     onSuccess: (row) => {
       setOpen(false);

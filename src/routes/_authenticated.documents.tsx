@@ -52,7 +52,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 function DocumentsPage() {
-  const { project_id } = Route.useSearch();
+  const { project_id, workspace_id } = Route.useSearch();
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<string>("all");
   const [department, setDepartment] = useState<string>("all");
@@ -65,10 +65,11 @@ function DocumentsPage() {
   const getUrl = useServerFn(getDocumentUrl);
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ["workspace-documents", status, department, projectFilter, q],
+    queryKey: ["workspace-documents", workspace_id, status, department, projectFilter, q],
     queryFn: () =>
       fetchDocs({
         data: {
+          workspace_id: workspace_id || undefined,
           project_id: projectFilter !== "all" ? projectFilter : undefined,
           status: status !== "all" ? status : undefined,
           department: department !== "all" ? department : undefined,

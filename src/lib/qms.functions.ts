@@ -5,8 +5,29 @@ import {
   generateBundle,
   PreRenderValidationError,
   validateBeforeRender,
+  renderDocumentPreview,
   type ProjectData,
 } from "./generation.server";
+
+async function auditLog(
+  action: string,
+  target: string | null,
+  payload: Record<string, any> | null,
+  workspace_id: string | null,
+  actor: string | null,
+) {
+  try {
+    await supabaseAdmin.from("audit_logs").insert({
+      action,
+      target,
+      payload: payload ?? {},
+      workspace_id,
+      actor,
+    });
+  } catch {
+    // Best effort only.
+  }
+}
 import {
   TEMPLATES,
   TEMPLATES_BY_CODE,
@@ -50,14 +71,17 @@ function resolveCodes(
 // List user's projects (in their workspaces).
 export const listProjects = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .inputValidator((d: { workspace_id?: string }) => d)
+  .handler(async ({ data, context }) => {
     const { supabase } = context;
-    const { data, error } = await supabase
+    let q = supabase
       .from("projects")
       .select("id, name, status, current_step, updated_at, workspace_id")
       .order("updated_at", { ascending: false });
+    if (data.workspace_id) q = q.eq("workspace_id", data.workspace_id);
+    const { data: projects, error } = await q;
     if (error) throw new Error(error.message);
-    return data ?? [];
+    return projects ?? [];
   });
 
 export const getWorkspaces = createServerFn({ method: "GET" })
@@ -80,6 +104,15 @@ export const createProject = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (error) throw new Error(error.message);
+
+    await auditLog(
+      "create_project",
+      row.id,
+      { name: data.name },
+      data.workspace_id,
+      userId,
+    );
+
     return row;
   });
 
@@ -138,6 +171,7 @@ export const startGeneration = createServerFn({ method: "POST" })
       project_id: string;
       scope?: "all" | "department" | "document";
       targets?: string[];
+      overrides?: Record<string, Record<string, string>>;
     }) => d,
   )
   .handler(async ({ data, context }) => {
@@ -158,13 +192,15 @@ export const startGeneration = createServerFn({ method: "POST" })
     // If no explicit scope is sent, fall back to the project's department_scope.
     let scope: "all" | "department" | "document" = data.scope ?? "all";
     let targets: string[] = data.targets ?? [];
-    if (!data.scope) {
-      const ds = ((project.department_scope as unknown) as string[]) ?? [];
-      if (ds.length) {
-        scope = "department";
-        targets = ds;
-      }
-    }
+
+    // Audit generation start.
+    await auditLog(
+      "start_generation",
+      project.id,
+      { scope, targets, project_name: project.name },
+      project.workspace_id,
+      userId,
+    );
     const selected = resolveCodes(scope, targets);
 
     // next version
@@ -210,6 +246,7 @@ export const startGeneration = createServerFn({ method: "POST" })
               .eq("id", run.id);
           } catch {}
         },
+        data.overrides,
       );
       const path = `${data.project_id}/${run.id}.zip`;
       const { error: upErr } = await supabaseAdmin.storage
@@ -276,6 +313,14 @@ export const startGeneration = createServerFn({ method: "POST" })
         })
         .eq("id", run.id);
 
+      await auditLog(
+        "complete_generation",
+        project.id,
+        { run_id: run.id, documents: result.entries.map((e) => e.code) },
+        project.workspace_id,
+        userId,
+      );
+
       return {
         run_id: run.id,
         documents: result.entries.length,
@@ -305,6 +350,13 @@ export const startGeneration = createServerFn({ method: "POST" })
           error: String(e?.message || e),
         })
         .eq("id", run.id);
+      await auditLog(
+        "fail_generation",
+        project.id,
+        { run_id: run.id, error: String(e?.message || e) },
+        project.workspace_id,
+        userId,
+      );
       throw e;
     }
   });
@@ -346,6 +398,22 @@ export const previewValidation = createServerFn({ method: "POST" })
       blocking: findings.filter((f) => f.severity === "error").length,
       warnings: findings.filter((f) => f.severity === "warning").length,
     };
+  });
+
+export const renderDocumentSections = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { project_id: string; document_code: string; overrides?: Record<string, Record<string, string>> }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: project, error } = await supabase
+      .from("projects")
+      .select("*")
+      .eq("id", data.project_id)
+      .single();
+    if (error || !project) throw new Error(error?.message || "Project not found");
+
+    const sections = await renderDocumentPreview(project as unknown as ProjectData, data.document_code, data.overrides);
+    return { sections };
   });
 
 export const listFindings = createServerFn({ method: "POST" })
@@ -414,13 +482,22 @@ export const getDocumentUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { document_id: string }) => d)
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
+    const { supabase, userId } = context;
     const { data: doc, error } = await supabase
       .from("generated_documents")
-      .select("storage_path, content")
+      .select("storage_path, content, project_id")
       .eq("id", data.document_id)
       .single();
     if (error || !doc?.storage_path) throw new Error("Document not found");
+
+    await auditLog(
+      "download_document",
+      data.document_id,
+      { project_id: doc.project_id },
+      null,
+      userId,
+    );
+
     const { data: signed, error: sErr } = await supabaseAdmin.storage
       .from("qms-bundles")
       .createSignedUrl(doc.storage_path, 60 * 10);
@@ -428,13 +505,176 @@ export const getDocumentUrl = createServerFn({ method: "POST" })
     return { url: signed.signedUrl };
   });
 
+export const listWorkspaceMembers = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { workspace_id: string }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+
+    const { data: members, error: membersErr } = await supabase
+      .from("workspace_members")
+      .select("user_id, role")
+      .eq("workspace_id", data.workspace_id);
+    if (membersErr) throw new Error(membersErr.message);
+
+    const userIds = (members ?? []).map((m: any) => m.user_id);
+    const { data: users, error: usersErr } = await supabaseAdmin
+      .from<any>("auth.users")
+      .select("id, email")
+      .in("id", userIds);
+    if (usersErr) throw new Error(usersErr.message);
+
+    const userMap = Object.fromEntries((users ?? []).map((u: any) => [u.id, u.email]));
+    return {
+      members: (members ?? []).map((m: any) => ({
+        user_id: m.user_id,
+        email: userMap[m.user_id] ?? "unknown",
+        role: m.role,
+      })),
+    };
+  });
+
+export const getWorkspaceRole = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { workspace_id: string }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: roleData, error } = await supabase.rpc("workspace_role", {
+      _user_id: context.userId,
+      _workspace_id: data.workspace_id,
+    });
+    if (error) throw new Error(error.message || "Unable to determine workspace role");
+    return { role: String(roleData) };
+  });
+
+export const removeWorkspaceMember = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { workspace_id: string; user_id: string }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: currentRoleData, error: roleErr } = await supabase.rpc(
+      "workspace_role",
+      { _user_id: userId, _workspace_id: data.workspace_id },
+    );
+    if (roleErr) throw new Error(roleErr.message || "Unable to verify workspace permissions");
+    const currentRole = String(currentRoleData);
+    if (!["owner", "admin"].includes(currentRole)) {
+      throw new Error("Only workspace owners or admins can remove members.");
+    }
+
+    const { error } = await supabase
+      .from("workspace_members")
+      .delete()
+      .eq("workspace_id", data.workspace_id)
+      .eq("user_id", data.user_id);
+    if (error) throw new Error(error.message);
+
+    await auditLog(
+      "remove_member",
+      data.user_id,
+      { workspace_id: data.workspace_id },
+      data.workspace_id,
+      userId,
+    );
+    return { ok: true };
+  });
+
+export const inviteMember = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (d: {
+      workspace_id: string;
+      email: string;
+      role?: "admin" | "editor" | "viewer";
+    }) => d,
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+
+    const { data: currentRoleData, error: roleErr } = await supabase.rpc(
+      "workspace_role",
+      { _user_id: userId, _workspace_id: data.workspace_id },
+    );
+    if (roleErr) throw new Error(roleErr.message || "Unable to verify workspace permissions");
+    const currentRole = String(currentRoleData);
+    if (!["owner", "admin"].includes(currentRole)) {
+      throw new Error("Only workspace owners or admins can invite members.");
+    }
+
+    const { data: users, error: usersErr } = await supabaseAdmin
+      .from<any>("auth.users")
+      .select("id, email")
+      .eq("email", data.email);
+    if (usersErr) throw new Error(usersErr.message);
+    const user = Array.isArray(users) ? users[0] : undefined;
+    if (!user) {
+      throw new Error(`No existing account found for ${data.email}. Invitees must sign up first.`);
+    }
+
+    const { data: existing, error: existingErr } = await supabase
+      .from("workspace_members")
+      .select("user_id")
+      .eq("workspace_id", data.workspace_id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (existingErr) throw new Error(existingErr.message);
+    if (existing) {
+      throw new Error("This user is already a member of the workspace.");
+    }
+
+    const roleToInsert = data.role ?? "editor";
+    const { error: insertErr } = await supabase.from("workspace_members").insert({
+      workspace_id: data.workspace_id,
+      user_id: user.id,
+      role: roleToInsert,
+    });
+    if (insertErr) throw new Error(insertErr.message);
+
+    await auditLog(
+      "invite_member",
+      user.id,
+      { email: data.email, role: roleToInsert },
+      data.workspace_id,
+      userId,
+    );
+
+    return { ok: true };
+  });
+
 export const deleteProject = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { id: string }) => d)
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
+    const { supabase, userId } = context;
+    const { data: project, error: pErr } = await supabase
+      .from("projects")
+      .select("workspace_id")
+      .eq("id", data.id)
+      .single();
+    if (pErr || !project) throw new Error(pErr?.message || "Project not found");
+
+    try {
+      const { data: files, error: listErr } = await supabaseAdmin.storage
+        .from("qms-bundles")
+        .list(data.id, { limit: 1000 });
+      if (!listErr && Array.isArray(files) && files.length) {
+        const paths = files.map((file: any) => `${data.id}/${file.name}`);
+        await supabaseAdmin.storage.from("qms-bundles").remove(paths);
+      }
+    } catch {
+      // best-effort cleanup only
+    }
+
     const { error } = await supabase.from("projects").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
+
+    await auditLog(
+      "delete_project",
+      data.id,
+      {},
+      project.workspace_id ?? null,
+      userId,
+    );
     return { ok: true };
   });
 
@@ -471,7 +711,6 @@ export const listWorkspaceDocuments = createServerFn({ method: "POST" })
       .order("created_at", { ascending: false })
       .limit(2000);
     if (data.status) q = q.eq("status", data.status);
-    if (data.q) q = q.ilike("template_code", `%${data.q}%`);
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
 
@@ -495,6 +734,18 @@ export const listWorkspaceDocuments = createServerFn({ method: "POST" })
     if (data.department) {
       docs = docs.filter((d: any) => d.template_code?.startsWith(data.department!));
     }
+    if (data.q) {
+      const qLower = data.q.toLowerCase();
+      docs = docs.filter((d: any) => {
+        const title = String(d.content?.name ?? "").toLowerCase();
+        const projectName = String(projectMap[d.project_id] ?? "").toLowerCase();
+        return (
+          String(d.template_code ?? "").toLowerCase().includes(qLower) ||
+          title.includes(qLower) ||
+          projectName.includes(qLower)
+        );
+      });
+    }
     return { documents: docs, projects: projects ?? [] };
   });
 
@@ -508,6 +759,13 @@ export const updateDocumentStatus = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const { data: doc, error: docErr } = await supabase
+      .from("generated_documents")
+      .select("project_id, template_code, storage_path")
+      .eq("id", data.document_id)
+      .single();
+    if (docErr || !doc) throw new Error(docErr?.message || "Document not found");
+
     const patch: any = { status: data.status };
     if (data.status === "released") {
       patch.released_at = new Date().toISOString();
@@ -518,6 +776,14 @@ export const updateDocumentStatus = createServerFn({ method: "POST" })
       .update(patch)
       .eq("id", data.document_id);
     if (error) throw new Error(error.message);
+
+    await auditLog(
+      "update_document_status",
+      data.document_id,
+      { status: data.status, template_code: doc.template_code },
+      null,
+      userId,
+    );
     return { ok: true };
   });
 
@@ -525,11 +791,26 @@ export const archiveDocument = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { document_id: string }) => d)
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
+    const { supabase, userId } = context;
+    const { data: doc, error: docErr } = await supabase
+      .from("generated_documents")
+      .select("template_code")
+      .eq("id", data.document_id)
+      .single();
+    if (docErr || !doc) throw new Error(docErr?.message || "Document not found");
+
     const { error } = await supabase
       .from("generated_documents")
       .update({ status: "obsolete", archived_at: new Date().toISOString() })
       .eq("id", data.document_id);
     if (error) throw new Error(error.message);
+
+    await auditLog(
+      "archive_document",
+      data.document_id,
+      { template_code: doc.template_code },
+      null,
+      userId,
+    );
     return { ok: true };
   });

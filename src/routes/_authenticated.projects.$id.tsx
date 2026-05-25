@@ -171,6 +171,9 @@ function ProjectPage() {
         <div>
           <Link to="/" className="text-xs text-muted-foreground hover:underline">← Back to projects</Link>
           <h1 className="text-2xl font-semibold mt-1">{p.name}</h1>
+          <Link to={`/documents?project_id=${id}`} className="text-sm text-primary hover:underline">
+            View this project's documents
+          </Link>
         </div>
         <Badge variant="secondary">{p.status}</Badge>
       </div>
@@ -248,7 +251,7 @@ function ProjectPage() {
             <CardTitle>Department scope</CardTitle>
             <CardDescription>
               Pick the departments to include. Templates from selected departments will be generated.
-              Leave all unchecked to include the full {TEMPLATES.length}-document set.
+              Leave all unchecked to generate the complete ISO 13485 QMS package.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -322,8 +325,10 @@ function ProjectPage() {
             >
               {genM.isPending ? (
                 <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Generating with dependencies…</>
+              ) : scope.length ? (
+                <><Sparkles className="h-4 w-4 mr-1" /> Generate department package ({selectedTplCount} documents)</>
               ) : (
-                <><Sparkles className="h-4 w-4 mr-1" /> Generate full set ({selectedTplCount})</>
+                <><Sparkles className="h-4 w-4 mr-1" /> Generate Complete QMS Package ({TEMPLATES.length} documents)</>
               )}
             </Button>
           )}

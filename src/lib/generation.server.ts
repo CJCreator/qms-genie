@@ -25,6 +25,7 @@ import pLimit from "p-limit";
 import {
   TEMPLATES_BY_CODE,
   directDependencies,
+  expandWithDependencies,
   type DocumentTemplate,
   type TemplateSection,
 } from "./templates";
@@ -74,10 +75,13 @@ function flattenVars(project: ProjectData): Record<string, string> {
     qa_manager_name: org.qa_manager_name || "[QA Manager Name]",
     qa_director_name: org.qa_director_name || "[QA Director Name]",
     management_representative: org.management_representative || "[Management Representative]",
-    device_name_model: dev.name ? `${dev.name}${dev.model ? " " + dev.model : ""}` : "[Device Name & Model]",
+    device_name_model: dev.name
+      ? `${dev.name}${dev.model ? " " + dev.model : ""}`
+      : "[Device Name & Model]",
     device_classification: dev.classification || "[Classification]",
     intended_use: dev.intended_use || "[Intended Use]",
-    target_markets: (Array.isArray(org.markets) ? org.markets.join(", ") : org.markets) || "[Markets]",
+    target_markets:
+      (Array.isArray(org.markets) ? org.markets.join(", ") : org.markets) || "[Markets]",
     revision_number: "1.0",
     effective_date: new Date().toISOString().slice(0, 10),
     project_name: project.name,
@@ -90,9 +94,25 @@ function substitute(text: string, vars: Record<string, string>): string {
 
 // ------- AI enrichment via Lovable AI Gateway -----------------------------
 
+function chooseAIModel(sectionType: string, prompt: string) {
+  const heavyTypes = new Set([
+    "ai_generated",
+    "clause_block",
+    "table_spec",
+    "risk_table",
+    "traceability_matrix",
+  ]);
+  const longPrompt = prompt.length > 900;
+  if (heavyTypes.has(sectionType) || longPrompt) {
+    return "google/gemini-2.5-pro";
+  }
+  return "google/gemini-2.5-flash";
+}
+
 async function callAI(
   systemPrompt: string,
   userPrompt: string,
+  sectionType: string,
   attempt = 0,
 ): Promise<string> {
   const apiKey = process.env.LOVABLE_API_KEY;
@@ -100,6 +120,7 @@ async function callAI(
     return "[AI enrichment unavailable — LOVABLE_API_KEY not configured. Section requires manual authoring.]";
   }
   try {
+    const model = chooseAIModel(sectionType, userPrompt);
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -107,7 +128,7 @@ async function callAI(
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
@@ -119,7 +140,7 @@ async function callAI(
     if ((res.status === 429 || res.status >= 500) && attempt < 2) {
       const delay = 500 * Math.pow(2, attempt) + Math.random() * 200;
       await new Promise((r) => setTimeout(r, delay));
-      return callAI(systemPrompt, userPrompt, attempt + 1);
+      return callAI(systemPrompt, userPrompt, sectionType, attempt + 1);
     }
 
     if (!res.ok) {
@@ -132,7 +153,7 @@ async function callAI(
     if (attempt < 2) {
       const delay = 500 * Math.pow(2, attempt) + Math.random() * 200;
       await new Promise((r) => setTimeout(r, delay));
-      return callAI(systemPrompt, userPrompt, attempt + 1);
+      return callAI(systemPrompt, userPrompt, sectionType, attempt + 1);
     }
     return `[AI unavailable — manual authoring required. ${e?.message || e}]`;
   }
@@ -140,20 +161,17 @@ async function callAI(
 
 // ------- per-document rendering -------------------------------------------
 
-async function renderSections(
+export async function renderSections(
   template: DocumentTemplate,
   project: ProjectData,
   vars: Record<string, string>,
   selectedCodes: Set<string>,
+  sectionOverrides?: Record<string, Record<string, string>>,
 ): Promise<{ section: TemplateSection; text: string }[]> {
   // Build the dependency context the AI can cite (only docs actually in this run).
-  const deps = directDependencies(template.meta.document_code).filter((c) =>
-    selectedCodes.has(c),
-  );
+  const deps = directDependencies(template.meta.document_code).filter((c) => selectedCodes.has(c));
   const depList = deps.length
-    ? deps
-        .map((c) => `- ${c} ${TEMPLATES_BY_CODE[c]?.meta.document_name ?? ""}`)
-        .join("\n")
+    ? deps.map((c) => `- ${c} ${TEMPLATES_BY_CODE[c]?.meta.document_name ?? ""}`).join("\n")
     : "(none for this section)";
   const deptInput = (project.department_inputs || {})[template.meta.department] || "";
 
@@ -170,6 +188,15 @@ ${depList}`;
 
   const out: { section: TemplateSection; text: string; payload?: any }[] = [];
   for (const sec of template.sections) {
+    // If an override for this exact document->section exists, use it and
+    // skip any AI enrichment for that section.
+    const docOverrides = sectionOverrides?.[template.meta.document_code] ?? {};
+    const overrideText = docOverrides?.[sec.id];
+    if (overrideText) {
+      out.push({ section: sec, text: substitute(overrideText, vars) });
+      continue;
+    }
+
     if (sec.type === "static" || sec.type === "variable") {
       out.push({ section: sec, text: substitute(sec.content, vars) });
     } else if (sec.type === "ai_generated") {
@@ -177,7 +204,7 @@ ${depList}`;
 
 Section to author: ${sec.title}
 Instruction: ${sec.section_prompt}`;
-      const text = await callAI(REGULATORY_SYSTEM_PROMPT, userPrompt);
+      const text = await callAI(REGULATORY_SYSTEM_PROMPT, userPrompt, sec.type);
       out.push({ section: sec, text });
     } else if (sec.type === "clause_block") {
       const userPrompt = `${orgContext}
@@ -186,14 +213,16 @@ You are authoring section "${sec.title}" which covers ISO 13485 clause(s) ${sec.
 For EACH clause listed, produce a short numbered subsection (e.g. "4.1.1 …") with concrete, procedural language tailored to the company and device above. Do NOT restate the clause text generically — write what THIS company does to meet it. Cite related QMS documents using {ref:CODE} placeholders where appropriate.
 
 Instruction: ${sec.section_prompt}`;
-      const text = await callAI(REGULATORY_SYSTEM_PROMPT, userPrompt);
+      const text = await callAI(REGULATORY_SYSTEM_PROMPT, userPrompt, sec.type);
       out.push({ section: sec, text });
     } else if (sec.type === "table_spec") {
-      let rows: Record<string, string>[] = sec.rows ? sec.rows.map((r) => {
-        const o: Record<string, string> = {};
-        for (const k of Object.keys(r)) o[k] = substitute(r[k], vars);
-        return o;
-      }) : [];
+      let rows: Record<string, string>[] = sec.rows
+        ? sec.rows.map((r) => {
+            const o: Record<string, string> = {};
+            for (const k of Object.keys(r)) o[k] = substitute(r[k], vars);
+            return o;
+          })
+        : [];
       if (sec.ai_rows_prompt) {
         const colSpec = sec.columns.map((c) => `"${c.key}" (${c.label})`).join(", ");
         const userPrompt = `${orgContext}
@@ -204,19 +233,50 @@ Return ONLY a JSON array (no prose, no markdown fences) of at least ${sec.min_ro
 Be specific to the company and device above — no placeholders like "TBD".
 
 Instruction: ${sec.ai_rows_prompt}`;
-        const raw = await callAI(REGULATORY_SYSTEM_PROMPT, userPrompt);
+        const raw = await callAI(REGULATORY_SYSTEM_PROMPT, userPrompt, sec.type);
         const aiRows = parseJsonArray(raw);
         if (aiRows.length) rows = [...rows, ...aiRows];
       }
       out.push({
         section: sec,
-        text: rows.map((r) => sec.columns.map((c) => `${c.label}: ${r[c.key] ?? ""}`).join(" | ")).join("\n"),
+        text: rows
+          .map((r) => sec.columns.map((c) => `${c.label}: ${r[c.key] ?? ""}`).join(" | "))
+          .join("\n"),
         payload: { rows },
       });
     } else if (sec.type === "approval_block") {
       out.push({
         section: sec,
         text: `Prepared by: ${template.meta.default_prepared_by_role} — ${vars.qa_manager_name}\nApproved by: ${template.meta.default_approved_by_role} — ${vars.qa_director_name}\nEffective Date: ${vars.effective_date}`,
+      });
+    } else if (sec.type === "risk_table" || sec.type === "traceability_matrix") {
+      let rows: Record<string, string>[] = sec.rows
+        ? sec.rows.map((r) => {
+            const o: Record<string, string> = {};
+            for (const k of Object.keys(r)) o[k] = substitute(r[k], vars);
+            return o;
+          })
+        : [];
+      if (sec.ai_rows_prompt) {
+        const colSpec = sec.columns.map((c) => `"${c.key}" (${c.label})`).join(", ");
+        const userPrompt = `${orgContext}
+
+You are filling rows for the ${sec.type.replace("_", " ")} "${sec.title}".
+Columns: ${colSpec}.
+Return ONLY a JSON array (no prose, no markdown fences) of at least ${sec.min_rows ?? 3} objects. Each object MUST use exactly these keys: ${sec.columns.map((c) => `"${c.key}"`).join(", ")}.
+Be specific to the company and device above — no placeholders like "TBD".
+
+Instruction: ${sec.ai_rows_prompt}`;
+        const raw = await callAI(REGULATORY_SYSTEM_PROMPT, userPrompt, sec.type);
+        const aiRows = parseJsonArray(raw);
+        if (aiRows.length) rows = [...rows, ...aiRows];
+      }
+      out.push({
+        section: sec,
+        text: rows
+          .map((r) => sec.columns.map((c) => `${c.label}: ${r[c.key] ?? ""}`).join(" | "))
+          .join("\n"),
+        payload: { rows },
       });
     } else if (sec.type === "table") {
       out.push({
@@ -231,7 +291,10 @@ Instruction: ${sec.ai_rows_prompt}`;
 function parseJsonArray(raw: string): Record<string, string>[] {
   if (!raw) return [];
   // Strip markdown fences if model added them
-  const cleaned = raw.replace(/```(?:json)?/gi, "").replace(/```/g, "").trim();
+  const cleaned = raw
+    .replace(/```(?:json)?/gi, "")
+    .replace(/```/g, "")
+    .trim();
   // Find the first [ and last ]
   const start = cleaned.indexOf("[");
   const end = cleaned.lastIndexOf("]");
@@ -239,11 +302,13 @@ function parseJsonArray(raw: string): Record<string, string>[] {
   try {
     const arr = JSON.parse(cleaned.slice(start, end + 1));
     if (!Array.isArray(arr)) return [];
-    return arr.filter((r) => r && typeof r === "object").map((r) => {
-      const o: Record<string, string> = {};
-      for (const k of Object.keys(r)) o[k] = String(r[k] ?? "");
-      return o;
-    });
+    return arr
+      .filter((r) => r && typeof r === "object")
+      .map((r) => {
+        const o: Record<string, string> = {};
+        for (const k of Object.keys(r)) o[k] = String(r[k] ?? "");
+        return o;
+      });
   } catch {
     return [];
   }
@@ -256,15 +321,34 @@ function parseJsonArray(raw: string): Record<string, string>[] {
  * built from this run. Unknown codes are left as a visible "[ref?:CODE]"
  * marker rather than silently dropped, so reviewers can spot them.
  */
+type CrossRefRegistryEntry = {
+  name: string;
+  sections: { id: string; title: string }[];
+};
+
+function resolveRolePlaceholders(text: string, vars: Record<string, string>): string {
+  return text.replace(/\{role:([a-z0-9_]+)\}/gi, (_m, role) => {
+    const substituteKey = role.toLowerCase();
+    const value = Object.entries(vars).find(([key]) => key.toLowerCase() === substituteKey)?.[1];
+    return value ?? `[role?:${role}]`;
+  });
+}
+
 function rewriteCrossRefs(
   text: string,
-  registry: Record<string, { name: string }>,
+  registry: Record<string, CrossRefRegistryEntry>,
+  vars: Record<string, string>,
 ): string {
-  return text.replace(/\{ref:([A-Z]{2}-\d{3})(?:#([a-zA-Z0-9_-]+))?\}/g, (_m, code, sec) => {
+  let result = text.replace(/\{ref:([A-Z]{2}-\d{3})(?:#([a-zA-Z0-9_-]+))?\}/g, (_m, code, sec) => {
     const r = registry[code];
     if (!r) return `[ref?:${code}]`;
-    return sec ? `${code} ${r.name} §${sec}` : `${code} ${r.name}`;
+    if (!sec) return `${code} ${r.name}`;
+    const section = r.sections.find((s) => s.id === sec);
+    return section ? `${code} ${r.name} — ${section.title}` : `${code} ${r.name} §${sec}`;
   });
+
+  result = resolveRolePlaceholders(result, vars);
+  return result;
 }
 
 function buildDocx(
@@ -280,9 +364,7 @@ function buildDocx(
     new Paragraph({
       alignment: AlignmentType.CENTER,
       spacing: { after: 120 },
-      children: [
-        new TextRun({ text: template.meta.document_name, bold: true, size: 32 }),
-      ],
+      children: [new TextRun({ text: template.meta.document_name, bold: true, size: 32 })],
     }),
     new Paragraph({
       alignment: AlignmentType.CENTER,
@@ -332,46 +414,78 @@ function buildDocx(
           rows,
         }),
       );
-    } else if (section.type === "table_spec") {
+    } else if (
+      section.type === "table_spec" ||
+      section.type === "risk_table" ||
+      section.type === "traceability_matrix"
+    ) {
       const cols = section.columns;
       const totalW = 9360;
       const baseW = Math.floor(totalW / cols.length);
-      const colWidths = cols.map((_, i) => (i === cols.length - 1 ? totalW - baseW * (cols.length - 1) : baseW));
+      const colWidths = cols.map((_, i) =>
+        i === cols.length - 1 ? totalW - baseW * (cols.length - 1) : baseW,
+      );
       const headerRow = new TableRow({
         tableHeader: true,
-        children: cols.map((c, i) => new TableCell({
-          width: { size: colWidths[i], type: WidthType.DXA },
-          margins: { top: 80, bottom: 80, left: 120, right: 120 },
-          borders: cellBorders,
-          shading: { fill: "EEF2F7", type: ShadingType.CLEAR, color: "auto" },
-          children: [new Paragraph({ children: [new TextRun({ text: c.label, bold: true, size: 20 })] })],
-        })),
+        children: cols.map(
+          (c, i) =>
+            new TableCell({
+              width: { size: colWidths[i], type: WidthType.DXA },
+              margins: { top: 80, bottom: 80, left: 120, right: 120 },
+              borders: cellBorders,
+              shading: { fill: "EEF2F7", type: ShadingType.CLEAR, color: "auto" },
+              children: [
+                new Paragraph({ children: [new TextRun({ text: c.label, bold: true, size: 20 })] }),
+              ],
+            }),
+        ),
       });
       const dataRows: TableRow[] = ((payload?.rows ?? []) as Record<string, string>[]).map(
-        (r) => new TableRow({
-          children: cols.map((c, i) => new TableCell({
-            width: { size: colWidths[i], type: WidthType.DXA },
-            margins: { top: 80, bottom: 80, left: 120, right: 120 },
-            borders: cellBorders,
-            children: [new Paragraph({ children: [new TextRun({ text: String(r[c.key] ?? ""), size: 20 })] })],
-          })),
-        }),
+        (r) =>
+          new TableRow({
+            children: cols.map(
+              (c, i) =>
+                new TableCell({
+                  width: { size: colWidths[i], type: WidthType.DXA },
+                  margins: { top: 80, bottom: 80, left: 120, right: 120 },
+                  borders: cellBorders,
+                  children: [
+                    new Paragraph({
+                      children: [new TextRun({ text: String(r[c.key] ?? ""), size: 20 })],
+                    }),
+                  ],
+                }),
+            ),
+          }),
       );
       if (!dataRows.length) {
-        dataRows.push(new TableRow({
-          children: cols.map((_, i) => new TableCell({
-            width: { size: colWidths[i], type: WidthType.DXA },
-            margins: { top: 80, bottom: 80, left: 120, right: 120 },
-            borders: cellBorders,
-            children: [new Paragraph({ children: [new TextRun({ text: "—", italics: true, size: 20, color: "888888" })] })],
-          })),
-        }));
+        dataRows.push(
+          new TableRow({
+            children: cols.map(
+              (_, i) =>
+                new TableCell({
+                  width: { size: colWidths[i], type: WidthType.DXA },
+                  margins: { top: 80, bottom: 80, left: 120, right: 120 },
+                  borders: cellBorders,
+                  children: [
+                    new Paragraph({
+                      children: [
+                        new TextRun({ text: "—", italics: true, size: 20, color: "888888" }),
+                      ],
+                    }),
+                  ],
+                }),
+            ),
+          }),
+        );
       }
-      children.push(new Table({
-        width: { size: totalW, type: WidthType.DXA },
-        columnWidths: colWidths,
-        rows: [headerRow, ...dataRows],
-      }));
+      children.push(
+        new Table({
+          width: { size: totalW, type: WidthType.DXA },
+          columnWidths: colWidths,
+          rows: [headerRow, ...dataRows],
+        }),
+      );
     } else {
       for (const line of text.split("\n")) {
         children.push(
@@ -385,9 +499,8 @@ function buildDocx(
   }
 
   // Page size from output_config (A4 default).
-  const pageSize = (cfg.page_size === "Letter")
-    ? { width: 12240, height: 15840 }
-    : { width: 11906, height: 16838 }; // A4 default
+  const pageSize =
+    cfg.page_size === "Letter" ? { width: 12240, height: 15840 } : { width: 11906, height: 16838 }; // A4 default
 
   // Header / footer strings with variable substitution.
   const headerText = cfg.header
@@ -412,9 +525,7 @@ function buildDocx(
           default: new Header({
             children: [
               new Paragraph({
-                children: [
-                  new TextRun({ text: headerText, size: 18, color: "666666" }),
-                ],
+                children: [new TextRun({ text: headerText, size: 18, color: "666666" })],
               }),
             ],
           }),
@@ -462,10 +573,7 @@ function buildTraceability(codes: string[]) {
  * findings — callers should check `severity === "error"` to decide whether to
  * block the run.
  */
-export function validateBeforeRender(
-  project: ProjectData,
-  codes: string[],
-): ValidationFinding[] {
+export function validateBeforeRender(project: ProjectData, codes: string[]): ValidationFinding[] {
   const findings: ValidationFinding[] = [];
   const org = project.organisation_profile || {};
 
@@ -505,7 +613,10 @@ export function validateBeforeRender(
   const markets: string[] = Array.isArray(org.markets)
     ? org.markets
     : typeof org.markets === "string"
-      ? org.markets.split(",").map((s: string) => s.trim()).filter(Boolean)
+      ? org.markets
+          .split(",")
+          .map((s: string) => s.trim())
+          .filter(Boolean)
       : [];
   if (!markets.length) {
     findings.push({
@@ -516,22 +627,27 @@ export function validateBeforeRender(
     });
   }
 
-  // Device portfolio: blocking
+  const regulatedMarkets = markets.map((m) => m.toLowerCase());
+
   const dev = project.device_portfolio?.[0];
   if (!project.device_portfolio?.length || !dev?.name) {
     findings.push({
       document_code: null,
       severity: "error",
       field: "device_portfolio",
-      message: "At least one device with a name is required. Add it in the Device Portfolio wizard step.",
+      message:
+        "At least one device with a name is required. Add it in the Device Portfolio wizard step.",
     });
   } else {
     if (!dev.classification) {
       findings.push({
         document_code: null,
-        severity: "warning",
+        severity: regulatedMarkets.some((m) => ["eu", "us", "uk"].includes(m))
+          ? "error"
+          : "warning",
         field: "device_portfolio[0].classification",
-        message: "Device classification (Class I/IIa/IIb/III) is missing.",
+        message:
+          "Device classification (Class I/IIa/IIb/III) is required for regulated markets and should be provided.",
       });
     }
     if (!dev.intended_use) {
@@ -582,10 +698,67 @@ export function validateBeforeRender(
     }
   }
 
+  // Role fields: recommended for approvals and audit review sections.
+  const roleFields: [string, string][] = [
+    ["qa_manager_name", "QA Manager name"],
+    ["qa_director_name", "QA Director name"],
+    ["management_representative", "Management representative"],
+  ];
+  for (const [k, label] of roleFields) {
+    if (!org[k] || !String(org[k]).trim()) {
+      findings.push({
+        document_code: null,
+        severity: "warning",
+        field: `organisation_profile.${k}`,
+        message: `${label} is recommended for approval, review and role-based sections.`,
+      });
+    }
+  }
+
+  // Detect role placeholders in templates and warn if corresponding organisation role values
+  // are not present. This helps catch missing replacement data before AI generation.
+  const placeholderPattern = /\{role:([a-z0-9_]+)\}/gi;
+  const placeholderKeys = new Set<string>();
+  for (const c of codes) {
+    const tpl = TEMPLATES_BY_CODE[c];
+    if (!tpl) continue;
+    for (const section of tpl.sections) {
+      const fieldSource =
+        section.type === "static" || section.type === "variable"
+          ? section.content
+          : section.type === "ai_generated" || section.type === "clause_block"
+            ? section.section_prompt
+            : section.type === "table_spec" ||
+                section.type === "risk_table" ||
+                section.type === "traceability_matrix"
+              ? `${section.ai_rows_prompt ?? ""}`
+              : "";
+      let match: RegExpExecArray | null;
+      while ((match = placeholderPattern.exec(fieldSource))) {
+        placeholderKeys.add(match[1]);
+      }
+    }
+  }
+  for (const key of placeholderKeys) {
+    const resolved = Object.keys(org).some((orgKey) => orgKey.toLowerCase() === key.toLowerCase());
+    if (!resolved) {
+      findings.push({
+        document_code: null,
+        severity: "warning",
+        field: `organisation_profile.${key}`,
+        message: `Role placeholder {role:${key}} appears in templates but no matching organisation field was provided.`,
+      });
+    }
+  }
+
   return findings;
 }
 
-function buildTraceXlsxAppend(wb: ExcelJS.Workbook, codes: string[], findings: ValidationFinding[]) {
+function buildTraceXlsxAppend(
+  wb: ExcelJS.Workbook,
+  codes: string[],
+  findings: ValidationFinding[],
+) {
   const trace = wb.addWorksheet("Traceability");
   trace.columns = [
     { header: "Code", key: "code", width: 12 },
@@ -614,6 +787,7 @@ export async function generateBundle(
   project: ProjectData,
   selectedCodes: string[],
   onProgress?: (done: number, total: number, code: string) => void | Promise<void>,
+  sectionOverrides?: Record<string, Record<string, string>>,
 ): Promise<{
   zip: Buffer;
   entries: { code: string; name: string; filename: string; buffer: Buffer }[];
@@ -643,29 +817,44 @@ export async function generateBundle(
     limit(async () => {
       const tpl = TEMPLATES_BY_CODE[code];
       if (!tpl) return;
-      const sections = await renderSections(tpl, project, vars, selectedSet);
+      const sections = await renderSections(tpl, project, vars, selectedSet, sectionOverrides);
       renderedDocs.push({ code, template: tpl, sections });
       done += 1;
-      try { await onProgress?.(done, total, code); } catch {}
+      try {
+        await onProgress?.(done, total, code);
+      } catch {}
     }),
   );
   await Promise.all(renderTasks);
 
   // ---- Pass 2: cross-reference rewriter ----------------------------------
-  const registry: Record<string, { name: string }> = {};
+  const registry: Record<string, CrossRefRegistryEntry> = {};
   for (const r of renderedDocs) {
-    registry[r.code] = { name: r.template.meta.document_name };
+    registry[r.code] = {
+      name: r.template.meta.document_name,
+      sections: r.template.sections.map((section) => ({
+        id: section.id,
+        title: section.title,
+      })),
+    };
   }
   for (const r of renderedDocs) {
     r.sections = r.sections.map((s) => ({
       section: s.section,
-      text: rewriteCrossRefs(s.text, registry),
+      text: rewriteCrossRefs(s.text, registry, vars),
       payload: s.payload,
     }));
   }
 
   // ---- Build .docx per document ------------------------------------------
-  const entries: { code: string; name: string; department: string; clauses: string; filename: string; buffer: Buffer }[] = [];
+  const entries: {
+    code: string;
+    name: string;
+    department: string;
+    clauses: string;
+    filename: string;
+    buffer: Buffer;
+  }[] = [];
   for (const r of renderedDocs) {
     const buf = await buildDocx(r.template, r.sections, vars);
     const safeName = `${r.template.meta.document_code}_${r.template.meta.document_name.replace(/[^\w-]+/g, "_")}.docx`;
@@ -713,7 +902,11 @@ export async function generateBundle(
   meta.getColumn(1).width = 22;
   meta.getColumn(2).width = 80;
 
-  buildTraceXlsxAppend(wb, entries.map((e) => e.code), findings);
+  buildTraceXlsxAppend(
+    wb,
+    entries.map((e) => e.code),
+    findings,
+  );
   const indexBuf = Buffer.from((await wb.xlsx.writeBuffer()) as ArrayBuffer);
   zip.file("00_Master_Index.xlsx", indexBuf);
 
@@ -735,4 +928,22 @@ before release. Apply approvals and signatures per your controlled-document proc
 
   const zipBuf = await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" });
   return { zip: zipBuf, entries, findings };
+}
+
+/**
+ * Render a single document's sections (AI-enriched) for preview/edit flows.
+ * Returns section id/title/type and the drafted text for client-side review.
+ */
+export async function renderDocumentPreview(
+  project: ProjectData,
+  code: string,
+  sectionOverrides?: Record<string, Record<string, string>>,
+): Promise<{ id: string; title: string; type: string; text: string }[]> {
+  const tpl = TEMPLATES_BY_CODE[code];
+  if (!tpl) return [];
+  const vars = flattenVars(project);
+  const selectedCodes = expandWithDependencies([code]);
+  const selectedSet = new Set(selectedCodes);
+  const rendered = await renderSections(tpl, project, vars, selectedSet, sectionOverrides);
+  return rendered.map((r) => ({ id: r.section.id, title: r.section.title, type: r.section.type, text: r.text }));
 }
