@@ -28,10 +28,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+  ChevronDown,
+  ChevronRight,
+  Download,
+  CheckCircle2,
+  Archive,
+  FileText,
+} from "lucide-react";
 import {
   ChevronDown,
   ChevronRight,
