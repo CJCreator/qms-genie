@@ -356,14 +356,14 @@ export async function generateBundle(
   onProgress?: (done: number, total: number, code: string) => void,
 ): Promise<{
   zip: Buffer;
-  entries: { code: string; name: string }[];
+  entries: { code: string; name: string; filename: string; buffer: Buffer }[];
   findings: ValidationFinding[];
 }> {
   const vars = flattenVars(project);
   const zip = new JSZip();
   const limit = pLimit(3);
 
-  const entries: { code: string; name: string; department: string; clauses: string; filename: string }[] = [];
+  const entries: { code: string; name: string; department: string; clauses: string; filename: string; buffer: Buffer }[] = [];
   let done = 0;
   const total = selectedCodes.length;
 
@@ -382,6 +382,7 @@ export async function generateBundle(
         department: tpl.meta.department,
         clauses: tpl.meta.iso_clauses.join(", "),
         filename: `${folder}/${safeName}`,
+        buffer: buf,
       });
       done += 1;
       onProgress?.(done, total, code);
@@ -439,6 +440,6 @@ before release. Apply approvals and signatures per your controlled-document proc
   );
 
   const zipBuf = await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" });
-  return { zip: zipBuf, entries: entries.map((e) => ({ code: e.code, name: e.name })), findings };
+  return { zip: zipBuf, entries, findings };
 }
 

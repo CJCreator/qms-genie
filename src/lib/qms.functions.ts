@@ -195,6 +195,29 @@ export const startGeneration = createServerFn({ method: "POST" })
         });
       if (upErr) throw new Error(upErr.message);
 
+      // Upload each .docx individually so the Document Repository can offer
+      // per-document download and version history.
+      const docRows: any[] = [];
+      for (const e of result.entries) {
+        const docPath = `${data.project_id}/${run.id}/${e.filename}`;
+        const { error: dErr } = await supabaseAdmin.storage
+          .from("qms-bundles")
+          .upload(docPath, e.buffer, {
+            contentType:
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            upsert: true,
+          });
+        if (dErr) throw new Error(dErr.message);
+        docRows.push({
+          run_id: run.id,
+          project_id: data.project_id,
+          template_code: e.code,
+          status: "rendered",
+          storage_path: docPath,
+          content: { name: e.name, filename: e.filename },
+        });
+      }
+
       // Persist validation findings for the UI tab.
       if (result.findings.length) {
         await supabaseAdmin.from("validation_findings").insert(
@@ -209,17 +232,8 @@ export const startGeneration = createServerFn({ method: "POST" })
         );
       }
 
-      // Persist per-document records (so the dashboard can show status per code).
-      await supabaseAdmin.from("generated_documents").insert(
-        result.entries.map((e) => ({
-          run_id: run.id,
-          project_id: data.project_id,
-          template_code: e.code,
-          status: "rendered",
-          storage_path: path,
-          content: { name: e.name },
-        })),
-      );
+      // Persist per-document records (status + storage path per code).
+      await supabaseAdmin.from("generated_documents").insert(docRows);
 
       await supabase
         .from("generation_runs")
@@ -278,11 +292,25 @@ export const listGeneratedDocuments = createServerFn({ method: "POST" })
     const { supabase } = context;
     const { data: rows, error } = await supabase
       .from("generated_documents")
-      .select("template_code, status, created_at, run_id")
+      .select("id, template_code, status, created_at, run_id, storage_path, content")
       .eq("project_id", data.project_id)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
-    return rows ?? [];
+
+    // Join with run versions for "version history" view.
+    const runIds = Array.from(new Set((rows ?? []).map((r: any) => r.run_id)));
+    let versionMap: Record<string, number> = {};
+    if (runIds.length) {
+      const { data: rs } = await supabase
+        .from("generation_runs")
+        .select("id, version")
+        .in("id", runIds);
+      versionMap = Object.fromEntries((rs ?? []).map((r: any) => [r.id, r.version]));
+    }
+    return (rows ?? []).map((r: any) => ({
+      ...r,
+      version: versionMap[r.run_id] ?? null,
+    }));
   });
 
 
@@ -302,4 +330,34 @@ export const getBundleUrl = createServerFn({ method: "POST" })
       .createSignedUrl(run.bundle_path, 60 * 10);
     if (sErr || !signed) throw new Error(sErr?.message || "Signed URL failed");
     return { url: signed.signedUrl };
+  });
+
+export const getDocumentUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { document_id: string }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: doc, error } = await supabase
+      .from("generated_documents")
+      .select("storage_path, content")
+      .eq("id", data.document_id)
+      .single();
+    if (error || !doc?.storage_path) throw new Error("Document not found");
+    const { data: signed, error: sErr } = await supabaseAdmin.storage
+      .from("qms-bundles")
+      .createSignedUrl(doc.storage_path, 60 * 10);
+    if (sErr || !signed) throw new Error(sErr?.message || "Signed URL failed");
+    return { url: signed.signedUrl };
+  });
+
+export const deleteProject = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    // Storage objects + child rows (runs, docs, findings) can be left to a
+    // future cleanup job; RLS already scopes visibility to workspace members.
+    const { error } = await supabase.from("projects").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
