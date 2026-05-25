@@ -3,110 +3,72 @@
     "document_code": "RD-005",
     "document_name": "Design Verification Protocol & Report",
     "department": "RD",
-    "iso_clauses": [
-      "7.3.5"
-    ],
-    "default_prepared_by_role": "RD Lead",
+    "iso_clauses": ["7.3.6"],
+    "default_prepared_by_role": "RD Verification Engineer",
     "default_approved_by_role": "QA Director",
     "retention_period": "Life of device + 10 years",
-    "applicable_device_types": [
-      "hardware",
-      "software",
-      "hims",
-      "combination"
-    ],
-    "applicable_markets": [
-      "EU",
-      "US",
-      "UK",
-      "global"
-    ]
+    "applicable_device_types": ["hardware", "software", "hims", "combination"],
+    "applicable_markets": ["EU", "US", "UK", "global"]
   },
   "inputs": [
-    {
-      "id": "company_legal_name",
-      "label": "Company Legal Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    },
-    {
-      "id": "device_name_model",
-      "label": "Device Name & Model",
-      "type": "text",
-      "required": true,
-      "source": "device_record"
-    },
-    {
-      "id": "qa_manager_name",
-      "label": "QA Manager Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    }
+    { "id": "company_legal_name", "label": "Company Legal Name", "type": "text", "required": true, "source": "company_profile" },
+    { "id": "device_name_model", "label": "Device Name & Model", "type": "text", "required": true, "source": "device_record" }
   ],
   "sections": [
+    { "id": "header", "title": "", "type": "static", "content": "ISO 13485:2016 \u00a77.3.6 \u2014 Design Verification Protocol & Report\nDocument Code: RD-005\nRevision: {revision_number}\nDevice: {device_name_model}" },
+    { "id": "purpose", "title": "1. Purpose", "type": "ai_generated", "section_prompt": "State that this protocol/report verifies that the design outputs ({ref:RD-003}) for {device_name_model} meet the design inputs documented in {ref:RD-002}, in accordance with ISO 13485:2016 \u00a77.3.6 and the Design & Development Plan {ref:RD-001}." },
+    { "id": "scope", "title": "2. Scope", "type": "variable", "content": "Applies to the verification of all design outputs for {device_name_model} prior to design transfer ({ref:RD-008})." },
     {
-      "id": "header",
-      "title": "",
-      "type": "static",
-      "content": "ISO 13485:2016\nDesign Verification Protocol & Report\nDocument Code: RD-005\nRevision: {revision_number}"
+      "id": "method",
+      "title": "3. Verification Methods",
+      "type": "clause_block",
+      "clauses": [
+        "3.1 Inspection",
+        "3.2 Analysis / calculation",
+        "3.3 Test (functional, performance, environmental, electrical safety)",
+        "3.4 Demonstration",
+        "3.5 Comparison with proven design"
+      ],
+      "section_prompt": "For each method above, explain in 2\u20133 sentences when and how it is used for {device_name_model}. Reference the verification matrix that follows."
     },
     {
-      "id": "purpose",
-      "title": "1. Purpose",
+      "id": "verification_matrix",
+      "title": "4. Verification Matrix (Inputs \u2192 Methods \u2192 Results)",
+      "type": "table_spec",
+      "columns": [
+        { "key": "req_id", "label": "Req ID", "width": 900 },
+        { "key": "requirement", "label": "Requirement", "width": 2800 },
+        { "key": "method", "label": "Method", "width": 1200 },
+        { "key": "acceptance", "label": "Acceptance Criterion", "width": 2000 },
+        { "key": "result", "label": "Result (P/F/NA)", "width": 1100 },
+        { "key": "evidence_ref", "label": "Evidence Ref", "width": 1360 }
+      ],
+      "ai_rows_prompt": "Generate 10\u201316 verification activities for {device_name_model}. Each row maps to a requirement from {ref:RD-002} (req_id like REQ-001..REQ-016), states the method, acceptance, a realistic Pass/Fail/NA result, and an evidence reference like TR-2024-007, REPORT-EMC-12, or LAB-LOG-44. Return JSON array."
+    },
+    {
+      "id": "deviations",
+      "title": "5. Deviations & Nonconformities",
       "type": "ai_generated",
-      "section_prompt": "Draft a clear, regulatory-compliant purpose statement for the Design Verification Protocol & Report document under ISO 13485:2016 for a medical device company.",
-      "editable": true
+      "section_prompt": "Describe how deviations from the verification protocol are documented, reviewed and dispositioned. Reference {ref:CA-007} for nonconformance handling and {ref:CA-001} for CAPA when verification failures indicate systemic issues."
     },
     {
-      "id": "scope",
-      "title": "2. Scope",
-      "type": "variable",
-      "content": "This document establishes the design verification protocol & report for {company_legal_name} and applies to all relevant QMS processes."
+      "id": "conclusion",
+      "title": "6. Verification Conclusion",
+      "type": "ai_generated",
+      "section_prompt": "Provide an audit-ready conclusion statement that summarises pass/fail counts from the verification matrix, lists any open items, and either (a) authorises progression to design validation ({ref:RD-006}) and design transfer ({ref:RD-008}), or (b) requires rework with linkage to design review ({ref:RD-004})."
     },
-    {
-      "id": "responsibilities",
-      "title": "3. Responsibilities",
-      "type": "static",
-      "content": "Prepared by: {default_prepared_by_role}\nApproved by: {default_approved_by_role}"
-    },
-    {
-      "id": "approval_block",
-      "title": "",
-      "type": "approval_block"
-    },
-    {
-      "id": "revision_history",
-      "title": "Revision History",
-      "type": "table",
-      "table_source": "revision_history"
-    }
+    { "id": "approval_block", "title": "", "type": "approval_block" },
+    { "id": "revision_history", "title": "Revision History", "type": "table", "table_source": "revision_history" }
   ],
   "validation_rules": {
-    "emits": [
-      "rd-005_approval",
-      "role_names"
-    ],
-    "consumes": [
-      "qa_manager_role_name",
-      "company_legal_name"
-    ],
-    "required_sections_for_markets": {
-      "EU": [
-        "scope",
-        "purpose"
-      ],
-      "US": [
-        "scope",
-        "purpose"
-      ]
-    }
+    "emits": ["verification_complete"],
+    "consumes": ["design_input_baseline", "design_outputs"],
+    "required_sections_for_markets": { "EU": ["verification_matrix"], "US": ["verification_matrix"] }
   },
-  "dependencies": [],
+  "dependencies": ["RD-001", "RD-002", "RD-003"],
   "output_config": {
     "page_size": "A4",
-    "header": "{company_legal_name} | RD-005 | Rev {revision_number}",
-    "footer": "CONFIDENTIAL \u2014 Controlled Document | ISO 13485:2016"
+    "header": "{company_legal_name} | RD-005 Design Verification | {device_name_model} | Rev {revision_number}",
+    "footer": "CONFIDENTIAL \u2014 Controlled Document | ISO 13485:2016 \u00a77.3.6"
   }
 }

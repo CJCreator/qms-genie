@@ -3,110 +3,83 @@
     "document_code": "RD-007",
     "document_name": "Risk Management File (ISO 14971)",
     "department": "RD",
-    "iso_clauses": [
-      "7.1"
-    ],
-    "default_prepared_by_role": "RD Lead",
+    "iso_clauses": ["7.1", "7.3.3", "7.3.9"],
+    "default_prepared_by_role": "Risk Manager",
     "default_approved_by_role": "QA Director",
     "retention_period": "Life of device + 10 years",
-    "applicable_device_types": [
-      "hardware",
-      "software",
-      "hims",
-      "combination"
-    ],
-    "applicable_markets": [
-      "EU",
-      "US",
-      "UK",
-      "global"
-    ]
+    "applicable_device_types": ["hardware", "software", "hims", "combination"],
+    "applicable_markets": ["EU", "US", "UK", "global"]
   },
   "inputs": [
-    {
-      "id": "company_legal_name",
-      "label": "Company Legal Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    },
-    {
-      "id": "device_name_model",
-      "label": "Device Name & Model",
-      "type": "text",
-      "required": true,
-      "source": "device_record"
-    },
-    {
-      "id": "qa_manager_name",
-      "label": "QA Manager Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    }
+    { "id": "company_legal_name", "label": "Company Legal Name", "type": "text", "required": true, "source": "company_profile" },
+    { "id": "device_name_model", "label": "Device Name & Model", "type": "text", "required": true, "source": "device_record" },
+    { "id": "intended_use", "label": "Intended Use", "type": "text", "required": true, "source": "device_record" }
   ],
   "sections": [
+    { "id": "header", "title": "", "type": "static", "content": "ISO 14971:2019 \u2014 Risk Management File\nDocument Code: RD-007\nRevision: {revision_number}\nDevice: {device_name_model}" },
+    { "id": "purpose", "title": "1. Purpose", "type": "ai_generated", "section_prompt": "State that this Risk Management File documents the application of ISO 14971:2019 to {device_name_model} across its entire lifecycle, in conformance with ISO 13485:2016 \u00a77.1 and \u00a77.3.3, feeding design inputs ({ref:RD-002}) and post-market surveillance ({ref:RA-005})." },
+    { "id": "scope", "title": "2. Scope", "type": "variable", "content": "Applies to all hazards, hazardous situations, and harms associated with {device_name_model} (intended use: {intended_use}) manufactured by {company_legal_name}, including normal use, foreseeable misuse, single-fault conditions, and end-of-life." },
     {
-      "id": "header",
-      "title": "",
-      "type": "static",
-      "content": "ISO 13485:2016\nRisk Management File (ISO 14971)\nDocument Code: RD-007\nRevision: {revision_number}"
+      "id": "risk_process",
+      "title": "3. Risk Management Process (ISO 14971 \u00a74)",
+      "type": "clause_block",
+      "clauses": [
+        "3.1 Risk management plan and acceptability criteria",
+        "3.2 Risk analysis: intended use, characteristics related to safety, hazard identification, risk estimation",
+        "3.3 Risk evaluation against acceptability criteria",
+        "3.4 Risk control: option analysis, implementation, residual risk evaluation",
+        "3.5 Evaluation of overall residual risk",
+        "3.6 Risk management review and report",
+        "3.7 Production and post-production information (post-market feedback loop)"
+      ],
+      "section_prompt": "For each clause, explain in 3\u20134 sentences how {company_legal_name} performs the activity for {device_name_model}. State the severity scale (e.g. 1\u20135), probability scale, and the acceptability matrix used. Reference the hazard register that follows."
     },
     {
-      "id": "purpose",
-      "title": "1. Purpose",
+      "id": "hazard_register",
+      "title": "4. Hazard / Risk Register",
+      "type": "table_spec",
+      "columns": [
+        { "key": "hazard_id", "label": "Hazard ID", "width": 900 },
+        { "key": "hazard", "label": "Hazard", "width": 1700 },
+        { "key": "hazardous_situation", "label": "Hazardous Situation", "width": 2000 },
+        { "key": "harm", "label": "Potential Harm", "width": 1500 },
+        { "key": "s_initial", "label": "S\u2080", "width": 500 },
+        { "key": "p_initial", "label": "P\u2080", "width": 500 },
+        { "key": "control", "label": "Risk Control Measure", "width": 2000 },
+        { "key": "s_residual", "label": "S\u1d63", "width": 500 },
+        { "key": "p_residual", "label": "P\u1d63", "width": 500 },
+        { "key": "verification", "label": "Verification Ref", "width": 1260 }
+      ],
+      "ai_rows_prompt": "Generate 12\u201320 realistic hazards for {device_name_model} covering: energy hazards (electrical, mechanical, thermal), biological/chemical (if patient contact), operational (use error, misuse), information (labelling, IFU), software/cybersecurity (if software), interoperability (if connected). Use ISO 14971 Annex C taxonomy. S and P on 1\u20135 scale. Residual S\u00d7P must always be \u2264 initial. Verification Ref points to {ref:RD-005} test reports (e.g. TR-EMC-04) or design controls in {ref:RD-003}. Return JSON array.",
+      "min_rows": 12
+    },
+    {
+      "id": "residual_risk",
+      "title": "5. Overall Residual Risk Evaluation",
       "type": "ai_generated",
-      "section_prompt": "Draft a clear, regulatory-compliant purpose statement for the Risk Management File (ISO 14971) document under ISO 13485:2016 for a medical device company.",
-      "editable": true
+      "section_prompt": "Provide an overall residual risk statement for {device_name_model}: count of risks by residual zone (acceptable / ALARP / unacceptable), justification that overall residual risk is acceptable in light of clinical benefit, and reference to the benefit-risk analysis. Cite EU MDR Annex I 8 if EU market."
     },
     {
-      "id": "scope",
-      "title": "2. Scope",
-      "type": "variable",
-      "content": "This document establishes the risk management file (iso 14971) for {company_legal_name} and applies to all relevant QMS processes."
+      "id": "post_market_loop",
+      "title": "6. Production & Post-Production Information",
+      "type": "ai_generated",
+      "section_prompt": "Describe how field data from complaints ({ref:CA-004}), nonconformances ({ref:CA-007}), CAPA ({ref:CA-001}), vigilance ({ref:CA-005}), and PMS ({ref:RA-005}) is reviewed at least annually and used to update this file."
     },
-    {
-      "id": "responsibilities",
-      "title": "3. Responsibilities",
-      "type": "static",
-      "content": "Prepared by: {default_prepared_by_role}\nApproved by: {default_approved_by_role}"
-    },
-    {
-      "id": "approval_block",
-      "title": "",
-      "type": "approval_block"
-    },
-    {
-      "id": "revision_history",
-      "title": "Revision History",
-      "type": "table",
-      "table_source": "revision_history"
-    }
+    { "id": "approval_block", "title": "", "type": "approval_block" },
+    { "id": "revision_history", "title": "Revision History", "type": "table", "table_source": "revision_history" }
   ],
   "validation_rules": {
-    "emits": [
-      "rd-007_approval",
-      "role_names"
-    ],
-    "consumes": [
-      "qa_manager_role_name",
-      "company_legal_name"
-    ],
+    "emits": ["risk_baseline", "residual_risks_identified"],
+    "consumes": ["device_name_model", "intended_use"],
     "required_sections_for_markets": {
-      "EU": [
-        "scope",
-        "purpose"
-      ],
-      "US": [
-        "scope",
-        "purpose"
-      ]
+      "EU": ["hazard_register", "residual_risk", "post_market_loop"],
+      "US": ["hazard_register", "residual_risk"]
     }
   },
-  "dependencies": [],
+  "dependencies": ["RD-001"],
   "output_config": {
     "page_size": "A4",
-    "header": "{company_legal_name} | RD-007 | Rev {revision_number}",
-    "footer": "CONFIDENTIAL \u2014 Controlled Document | ISO 13485:2016"
+    "header": "{company_legal_name} | RD-007 Risk Management File | {device_name_model} | Rev {revision_number}",
+    "footer": "CONFIDENTIAL \u2014 Controlled Document | ISO 14971:2019"
   }
 }
