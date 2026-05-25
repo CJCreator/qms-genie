@@ -268,7 +268,7 @@ function rewriteCrossRefs(
 
 function buildDocx(
   template: DocumentTemplate,
-  rendered: { section: TemplateSection; text: string }[],
+  rendered: { section: TemplateSection; text: string; payload?: any }[],
   vars: Record<string, string>,
 ): Promise<Buffer> {
   const children: any[] = [];
