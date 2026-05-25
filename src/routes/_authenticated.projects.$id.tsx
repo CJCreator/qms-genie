@@ -500,3 +500,149 @@ function Field({ label, v, onChange }: { label: string; v?: string; onChange: (v
     </div>
   );
 }
+
+type DocRow = {
+  id: string;
+  template_code: string;
+  status: string;
+  created_at: string;
+  run_id: string;
+  storage_path: string | null;
+  version: number | null;
+  content: any;
+};
+
+function DocumentRepository({
+  docs,
+  onDownload,
+}: {
+  docs: DocRow[];
+  onDownload: (docId: string) => Promise<void>;
+}) {
+  const [query, setQuery] = useState("");
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+
+  // Group by template_code; sort versions newest first.
+  const grouped = (() => {
+    const map: Record<string, DocRow[]> = {};
+    for (const d of docs) (map[d.template_code] ||= []).push(d);
+    for (const k of Object.keys(map))
+      map[k].sort(
+        (a, b) => (b.version ?? 0) - (a.version ?? 0) ||
+          (b.created_at || "").localeCompare(a.created_at || ""),
+      );
+    return map;
+  })();
+
+  const codes = Object.keys(grouped).sort();
+  const q = query.toLowerCase();
+  const filtered = codes.filter((c) => {
+    if (!q) return true;
+    const tpl = TEMPLATES_BY_CODE[c];
+    return (
+      c.toLowerCase().includes(q) ||
+      (tpl?.meta.document_name.toLowerCase().includes(q) ?? false) ||
+      (tpl?.meta.department.toLowerCase().includes(q) ?? false)
+    );
+  });
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <div>
+          <h2 className="text-lg font-semibold">Document repository</h2>
+          <p className="text-xs text-muted-foreground">
+            {codes.length} unique documents · {docs.length} stored versions ·
+            kept in your workspace until you delete or export them
+          </p>
+        </div>
+      </div>
+      <Input
+        placeholder="Search by code, name or department…"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        className="mb-3"
+      />
+      {filtered.length ? (
+        <div className="border rounded-md divide-y">
+          {filtered.map((code) => {
+            const versions = grouped[code];
+            const latest = versions[0];
+            const tpl = TEMPLATES_BY_CODE[code];
+            const open = !!expanded[code];
+            return (
+              <div key={code} className="px-3 py-2 text-sm">
+                <div className="flex items-center gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium truncate">
+                      {code} · {tpl?.meta.document_name ?? "(unknown)"}
+                    </div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      {tpl?.meta.department} · ISO {tpl?.meta.iso_clauses.join(", ")} ·
+                      latest v{latest.version ?? "?"} ·{" "}
+                      {new Date(latest.created_at).toLocaleString()}
+                    </div>
+                  </div>
+                  <Badge variant="secondary">{versions.length} ver.</Badge>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onDownload(latest.id)}
+                  >
+                    <Download className="h-3 w-3 mr-1" /> Latest
+                  </Button>
+                  {versions.length > 1 && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setExpanded({ ...expanded, [code]: !open })}
+                    >
+                      {open ? "Hide" : "History"}
+                    </Button>
+                  )}
+                </div>
+                {open && versions.length > 1 && (
+                  <div className="mt-2 ml-2 pl-3 border-l space-y-1">
+                    {versions.map((v) => (
+                      <div
+                        key={v.id}
+                        className="flex items-center justify-between text-xs"
+                      >
+                        <div className="text-muted-foreground">
+                          v{v.version ?? "?"} · {new Date(v.created_at).toLocaleString()} ·{" "}
+                          {v.status}
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => onDownload(v.id)}
+                        >
+                          <Download className="h-3 w-3 mr-1" /> Download
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          {docs.length
+            ? "No documents match your search."
+            : "No documents yet — generate the QMS package to populate the repository."}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function Field({ label, v, onChange }: { label: string; v?: string; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <Label className="text-xs">{label}</Label>
+      <Input value={v || ""} onChange={(e) => onChange(e.target.value)} />
+    </div>
+  );
+}
