@@ -3,110 +3,94 @@
     "document_code": "QP-005",
     "document_name": "Management Review Procedure",
     "department": "QMS",
-    "iso_clauses": [
-      "5.6"
-    ],
-    "default_prepared_by_role": "QA Manager",
+    "iso_clauses": ["5.6.1", "5.6.2", "5.6.3"],
+    "default_prepared_by_role": "Management Representative",
     "default_approved_by_role": "CEO / Top Management",
     "retention_period": "Permanent",
-    "applicable_device_types": [
-      "hardware",
-      "software",
-      "hims",
-      "combination"
-    ],
-    "applicable_markets": [
-      "EU",
-      "US",
-      "UK",
-      "global"
-    ]
+    "applicable_device_types": ["hardware", "software", "hims", "combination"],
+    "applicable_markets": ["EU", "US", "UK", "global"]
   },
   "inputs": [
-    {
-      "id": "company_legal_name",
-      "label": "Company Legal Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    },
-    {
-      "id": "device_name_model",
-      "label": "Device Name & Model",
-      "type": "text",
-      "required": true,
-      "source": "device_record"
-    },
-    {
-      "id": "qa_manager_name",
-      "label": "QA Manager Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    }
+    { "id": "company_legal_name", "label": "Company Legal Name", "type": "text", "required": true, "source": "company_profile" }
   ],
   "sections": [
-    {
-      "id": "header",
-      "title": "",
-      "type": "static",
-      "content": "ISO 13485:2016\nManagement Review Procedure\nDocument Code: QP-005\nRevision: {revision_number}"
-    },
     {
       "id": "purpose",
       "title": "1. Purpose",
       "type": "ai_generated",
-      "section_prompt": "Draft a clear, regulatory-compliant purpose statement for the Management Review Procedure document under ISO 13485:2016 for a medical device company.",
-      "editable": true
+      "section_prompt": "Define the purpose: ensure the QMS is suitable, adequate and effective and identify opportunities for improvement; meet ISO 13485:2016 §5.6 and (for EU markets) MDR Article 10 obligations."
     },
     {
-      "id": "scope",
-      "title": "2. Scope",
-      "type": "variable",
-      "content": "This document establishes the management review procedure for {company_legal_name} and applies to all relevant QMS processes."
+      "id": "frequency",
+      "title": "2. Frequency and Attendees",
+      "type": "ai_generated",
+      "section_prompt": "State minimum review frequency (at least annually; quarterly recommended for early-stage companies). List required attendees (CEO, QA Manager, Management Representative, RA Lead, Engineering Lead, Operations Lead, Clinical/Medical Affairs if applicable). Define quorum and chair."
     },
     {
-      "id": "responsibilities",
-      "title": "3. Responsibilities",
-      "type": "static",
-      "content": "Prepared by: {default_prepared_by_role}\nApproved by: {default_approved_by_role}"
+      "id": "inputs",
+      "title": "3. Required Inputs (Clause 5.6.2)",
+      "type": "table_spec",
+      "columns": [
+        { "key": "input", "label": "Input" },
+        { "key": "source_doc", "label": "Source Document" },
+        { "key": "owner", "label": "Owner" }
+      ],
+      "rows": [
+        { "input": "Feedback (customer, post-market)", "source_doc": "{ref:CA-003}, {ref:CA-004}", "owner": "QA Manager" },
+        { "input": "Complaint handling status", "source_doc": "{ref:CA-004}", "owner": "QA Manager" },
+        { "input": "Reporting to regulatory authorities", "source_doc": "{ref:CA-005}", "owner": "RA Lead" },
+        { "input": "Audit results (internal & external)", "source_doc": "{ref:AU-005}", "owner": "Management Representative" },
+        { "input": "Monitoring and measurement of processes", "source_doc": "{ref:QF-002}", "owner": "Process Owners" },
+        { "input": "Monitoring and measurement of product", "source_doc": "Inspection records", "owner": "QC Lead" },
+        { "input": "CAPA status", "source_doc": "{ref:CA-001}", "owner": "QA Manager" },
+        { "input": "Follow-up actions from previous reviews", "source_doc": "{ref:QF-001}", "owner": "Management Representative" },
+        { "input": "Changes that could affect the QMS", "source_doc": "Change log", "owner": "QA Manager" },
+        { "input": "Recommendations for improvement", "source_doc": "All attendees", "owner": "Chair" },
+        { "input": "Applicable new or revised regulatory requirements", "source_doc": "{ref:QP-006}", "owner": "RA Lead" }
+      ]
     },
     {
-      "id": "approval_block",
-      "title": "",
-      "type": "approval_block"
+      "id": "outputs",
+      "title": "4. Required Outputs (Clause 5.6.3)",
+      "type": "ai_generated",
+      "section_prompt": "List required outputs: improvements needed to maintain suitability/adequacy/effectiveness of the QMS; improvements to product related to customer requirements; changes needed to respond to new/revised regulatory requirements; resource needs. Each output must have a named owner, due date, and tracking ID linked to {ref:CA-001} where corrective action is required."
     },
+    {
+      "id": "procedure",
+      "title": "5. Procedure",
+      "type": "ai_generated",
+      "section_prompt": "Step-by-step: 30 days before meeting — Management Rep issues data-collection request to input owners; 7 days before — agenda + pre-read circulated; meeting — review each input, decide actions; within 5 business days — minutes drafted using {ref:QF-001} and circulated for approval; within 30 days — actions logged and tracked to closure; effectiveness verified at next review."
+    },
+    {
+      "id": "records",
+      "title": "6. Records",
+      "type": "ai_generated",
+      "section_prompt": "List records produced: pre-read data pack, signed minutes ({ref:QF-001}), action register. Retention per {ref:QP-004}."
+    },
+    { "id": "approval_block", "title": "Approval", "type": "approval_block" },
     {
       "id": "revision_history",
       "title": "Revision History",
-      "type": "table",
-      "table_source": "revision_history"
+      "type": "table_spec",
+      "columns": [
+        { "key": "rev", "label": "Rev" },
+        { "key": "date", "label": "Date" },
+        { "key": "author", "label": "Author" },
+        { "key": "summary", "label": "Change Summary" }
+      ],
+      "rows": [
+        { "rev": "1.0", "date": "{effective_date}", "author": "{qa_manager_name}", "summary": "Initial release." }
+      ]
     }
   ],
   "validation_rules": {
-    "emits": [
-      "qp-005_approval",
-      "role_names"
-    ],
-    "consumes": [
-      "qa_manager_role_name",
-      "company_legal_name"
-    ],
-    "required_sections_for_markets": {
-      "EU": [
-        "scope",
-        "purpose"
-      ],
-      "US": [
-        "scope",
-        "purpose"
-      ]
-    }
+    "emits": ["mgmt_review_cadence", "mgmt_review_inputs_outputs"],
+    "consumes": ["company_legal_name", "qa_director_name"]
   },
-  "dependencies": [],
+  "dependencies": ["QF-001", "QF-002", "QP-004", "QP-006", "CA-001", "CA-003", "CA-004", "CA-005", "AU-005"],
   "output_config": {
     "page_size": "A4",
-    "header": "{company_legal_name} | QP-005 | Rev {revision_number}",
-    "footer": "CONFIDENTIAL \u2014 Controlled Document | ISO 13485:2016"
+    "header": "{company_legal_name} | QP-005 Management Review | Rev {revision_number}",
+    "footer": "CONFIDENTIAL — Controlled Document | ISO 13485:2016 §5.6"
   }
 }
