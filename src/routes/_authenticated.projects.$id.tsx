@@ -8,8 +8,10 @@ import {
   startGeneration,
   listGenerationRuns,
   getBundleUrl,
+  listFindings,
+  planGeneration,
 } from "@/lib/qms.functions";
-import { DEPARTMENTS, TEMPLATES } from "@/lib/templates";
+import { DEPARTMENTS, TEMPLATES, directDependencies } from "@/lib/templates";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
