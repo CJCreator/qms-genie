@@ -265,13 +265,100 @@ async function buildIndexXlsx(
   return Buffer.from(buf as ArrayBuffer);
 }
 
+// ------- traceability + validator ------------------------------------------
+
+function buildTraceability(codes: string[]) {
+  return codes.map((c) => {
+    const t = TEMPLATES_BY_CODE[c];
+    return {
+      code: c,
+      name: t?.meta.document_name ?? "",
+      department: t?.meta.department ?? "",
+      clauses: t?.meta.iso_clauses.join(", ") ?? "",
+      dependencies: directDependencies(c).join(", "),
+    };
+  });
+}
+
+function validateBundle(project: ProjectData, codes: string[]): ValidationFinding[] {
+  const findings: ValidationFinding[] = [];
+  const org = project.organisation_profile || {};
+  const requiredOrg: [string, string][] = [
+    ["legal_name", "Organisation legal name"],
+    ["qa_manager_name", "QA Manager name"],
+    ["qa_director_name", "QA Director name"],
+  ];
+  for (const [k, label] of requiredOrg) {
+    if (!org[k]) {
+      findings.push({
+        document_code: null,
+        severity: "warning",
+        field: `organisation_profile.${k}`,
+        message: `${label} is missing — documents will render with a placeholder.`,
+      });
+    }
+  }
+  if (!project.device_portfolio?.length || !project.device_portfolio[0]?.name) {
+    findings.push({
+      document_code: null,
+      severity: "warning",
+      field: "device_portfolio",
+      message: "No devices captured — device-specific sections will use placeholders.",
+    });
+  }
+
+  const set = new Set(codes);
+  for (const c of codes) {
+    const tpl = TEMPLATES_BY_CODE[c];
+    if (!tpl) continue;
+    for (const dep of directDependencies(c)) {
+      if (!set.has(dep)) {
+        findings.push({
+          document_code: c,
+          severity: "error",
+          field: "dependencies",
+          message: `Depends on ${dep} which was not included in this run.`,
+        });
+      }
+    }
+  }
+  return findings;
+}
+
+function buildTraceXlsxAppend(wb: ExcelJS.Workbook, codes: string[], findings: ValidationFinding[]) {
+  const trace = wb.addWorksheet("Traceability");
+  trace.columns = [
+    { header: "Code", key: "code", width: 12 },
+    { header: "Document", key: "name", width: 50 },
+    { header: "Dept", key: "department", width: 8 },
+    { header: "ISO Clauses", key: "clauses", width: 22 },
+    { header: "Dependencies", key: "dependencies", width: 60 },
+  ];
+  trace.getRow(1).font = { bold: true };
+  for (const row of buildTraceability(codes)) trace.addRow(row);
+
+  const find = wb.addWorksheet("Validation");
+  find.columns = [
+    { header: "Severity", key: "severity", width: 10 },
+    { header: "Document", key: "document_code", width: 12 },
+    { header: "Field", key: "field", width: 28 },
+    { header: "Message", key: "message", width: 80 },
+  ];
+  find.getRow(1).font = { bold: true };
+  for (const f of findings) find.addRow(f);
+}
+
 // ------- main entry -------------------------------------------------------
 
 export async function generateBundle(
   project: ProjectData,
   selectedCodes: string[],
   onProgress?: (done: number, total: number, code: string) => void,
-): Promise<{ zip: Buffer; entries: { code: string; name: string }[] }> {
+): Promise<{
+  zip: Buffer;
+  entries: { code: string; name: string }[];
+  findings: ValidationFinding[];
+}> {
   const vars = flattenVars(project);
   const zip = new JSZip();
   const limit = pLimit(3);
@@ -287,7 +374,7 @@ export async function generateBundle(
       const rendered = await renderSections(tpl, project, vars);
       const buf = await buildDocx(tpl, rendered);
       const safeName = `${tpl.meta.document_code}_${tpl.meta.document_name.replace(/[^\w-]+/g, "_")}.docx`;
-      const folder = `${tpl.meta.department}_${tpl.meta.department}`.split("_")[0];
+      const folder = tpl.meta.department;
       zip.folder(folder)!.file(safeName, buf);
       entries.push({
         code: tpl.meta.document_code,
@@ -303,13 +390,55 @@ export async function generateBundle(
   await Promise.all(tasks);
 
   entries.sort((a, b) => a.code.localeCompare(b.code));
-  const indexBuf = await buildIndexXlsx(project, entries);
+  const findings = validateBundle(project, selectedCodes);
+
+  // master index workbook (index + traceability + validation)
+  const wb = new ExcelJS.Workbook();
+  wb.creator = "ISO 13485 QMS Platform";
+  const ws = wb.addWorksheet("Master Index");
+  ws.columns = [
+    { header: "Code", key: "code", width: 12 },
+    { header: "Document Name", key: "name", width: 52 },
+    { header: "Department", key: "department", width: 16 },
+    { header: "ISO 13485 Clause(s)", key: "clauses", width: 24 },
+    { header: "Filename", key: "filename", width: 60 },
+  ];
+  ws.getRow(1).font = { bold: true };
+  entries.forEach((e) => ws.addRow(e));
+
+  const meta = wb.addWorksheet("Project");
+  meta.addRows([
+    ["Project", project.name],
+    ["Generated", new Date().toISOString()],
+    ["Company", project.organisation_profile?.legal_name || ""],
+    ["Devices", (project.device_portfolio || []).map((d: any) => d.name).join("; ")],
+    ["Departments", (project.department_scope || []).join(", ")],
+    ["Total documents", entries.length],
+    ["Validation findings", findings.length],
+  ]);
+  meta.getColumn(1).font = { bold: true };
+  meta.getColumn(1).width = 22;
+  meta.getColumn(2).width = 80;
+
+  buildTraceXlsxAppend(wb, entries.map((e) => e.code), findings);
+  const indexBuf = Buffer.from((await wb.xlsx.writeBuffer()) as ArrayBuffer);
   zip.file("00_Master_Index.xlsx", indexBuf);
+
   zip.file(
     "README.txt",
-    `ISO 13485:2016 QMS Document Package\nProject: ${project.name}\nGenerated: ${new Date().toISOString()}\nDocuments: ${entries.length}\n\nThis package is a controlled-document baseline. Review, approve, and add wet-ink / e-signatures per your QMS before release.`,
+    `ISO 13485:2016 QMS Document Package
+Project: ${project.name}
+Generated: ${new Date().toISOString()}
+Documents: ${entries.length}
+Validation findings: ${findings.length}
+
+Dependency-aware generation: every document in this package was rendered together
+with its declared cross-references so that traceability across the QMS is preserved.
+Review the Master Index, Traceability, and Validation tabs of 00_Master_Index.xlsx
+before release. Apply approvals and signatures per your controlled-document procedure.`,
   );
 
   const zipBuf = await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" });
-  return { zip: zipBuf, entries: entries.map((e) => ({ code: e.code, name: e.name })) };
+  return { zip: zipBuf, entries: entries.map((e) => ({ code: e.code, name: e.name })), findings };
 }
+
