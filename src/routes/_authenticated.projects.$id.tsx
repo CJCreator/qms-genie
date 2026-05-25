@@ -119,6 +119,7 @@ function ProjectPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["runs", id] });
       qc.invalidateQueries({ queryKey: ["findings", id] });
+      qc.invalidateQueries({ queryKey: ["docs", id] });
     },
   });
 
