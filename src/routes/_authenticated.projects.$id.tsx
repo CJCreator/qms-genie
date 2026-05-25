@@ -492,14 +492,8 @@ function ProjectPage() {
   );
 }
 
-function Field({ label, v, onChange }: { label: string; v?: string; onChange: (v: string) => void }) {
-  return (
-    <div>
-      <Label className="text-xs">{label}</Label>
-      <Input value={v || ""} onChange={(e) => onChange(e.target.value)} />
-    </div>
-  );
-}
+
+
 
 type DocRow = {
   id: string;
