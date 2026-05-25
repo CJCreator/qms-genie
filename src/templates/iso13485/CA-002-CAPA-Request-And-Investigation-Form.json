@@ -2,111 +2,117 @@
   "meta": {
     "document_code": "CA-002",
     "document_name": "CAPA Request & Investigation Form",
-    "department": "CAPA",
-    "iso_clauses": [
-      "8.3"
-    ],
-    "default_prepared_by_role": "QA Manager",
-    "default_approved_by_role": "QA Director",
+    "department": "CA",
+    "iso_clauses": ["8.5.2", "8.5.3"],
+    "default_prepared_by_role": "CAPA Owner",
+    "default_approved_by_role": "QA Manager",
     "retention_period": "Life of device + 10 years",
-    "applicable_device_types": [
-      "hardware",
-      "software",
-      "hims",
-      "combination"
-    ],
-    "applicable_markets": [
-      "EU",
-      "US",
-      "UK",
-      "global"
-    ]
+    "applicable_device_types": ["hardware", "software", "hims", "combination"],
+    "applicable_markets": ["EU", "US", "UK", "global"]
   },
   "inputs": [
-    {
-      "id": "company_legal_name",
-      "label": "Company Legal Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    },
-    {
-      "id": "device_name_model",
-      "label": "Device Name & Model",
-      "type": "text",
-      "required": true,
-      "source": "device_record"
-    },
-    {
-      "id": "qa_manager_name",
-      "label": "QA Manager Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    }
+    { "id": "company_legal_name", "label": "Company Legal Name", "type": "text", "required": true, "source": "company_profile" }
   ],
   "sections": [
+    { "id": "header", "title": "", "type": "static", "content": "CAPA Request & Investigation Form\nDocument Code: CA-002\nRevision: {revision_number}\nGoverned by: {ref:CA-001}" },
+    { "id": "instructions", "title": "1. Instructions", "type": "ai_generated", "section_prompt": "Provide brief instructions on completing this form per {ref:CA-001}: who fills which sections, when sign-offs are required, and where to upload supporting evidence." },
     {
-      "id": "header",
-      "title": "",
-      "type": "static",
-      "content": "ISO 13485:2016\nCAPA Request & Investigation Form\nDocument Code: CA-002\nRevision: {revision_number}"
+      "id": "identification",
+      "title": "2. CAPA Identification",
+      "type": "table_spec",
+      "columns": [
+        { "key": "field", "label": "Field", "width": 3200 },
+        { "key": "value", "label": "Value", "width": 7360 }
+      ],
+      "rows": [
+        { "field": "CAPA ID", "value": "CAPA-YYYY-NNN" },
+        { "field": "Date Opened", "value": "" },
+        { "field": "Source (Complaint / NCR / Audit / Supplier / PMS / Other)", "value": "" },
+        { "field": "Source Reference", "value": "" },
+        { "field": "Priority (Low / Medium / High)", "value": "" },
+        { "field": "CAPA Owner", "value": "" },
+        { "field": "Target Closure Date", "value": "" }
+      ]
     },
     {
-      "id": "purpose",
-      "title": "1. Purpose",
+      "id": "problem_statement",
+      "title": "3. Problem Statement",
       "type": "ai_generated",
-      "section_prompt": "Draft a clear, regulatory-compliant purpose statement for the CAPA Request & Investigation Form document under ISO 13485:2016 for a medical device company.",
-      "editable": true
+      "section_prompt": "Provide a template paragraph guiding the CAPA Owner to write a concise, fact-based problem statement (what was observed, when, where, magnitude, impact on product/patient). Include a sentence on immediate containment."
     },
     {
-      "id": "scope",
-      "title": "2. Scope",
-      "type": "variable",
-      "content": "This document establishes the capa request & investigation form for {company_legal_name} and applies to all relevant QMS processes."
+      "id": "rca",
+      "title": "4. Root Cause Analysis",
+      "type": "table_spec",
+      "columns": [
+        { "key": "step", "label": "RCA Step", "width": 2400 },
+        { "key": "finding", "label": "Finding", "width": 5200 },
+        { "key": "evidence", "label": "Evidence Ref", "width": 2960 }
+      ],
+      "rows": [
+        { "step": "Why 1", "finding": "", "evidence": "" },
+        { "step": "Why 2", "finding": "", "evidence": "" },
+        { "step": "Why 3", "finding": "", "evidence": "" },
+        { "step": "Why 4", "finding": "", "evidence": "" },
+        { "step": "Why 5 (root cause)", "finding": "", "evidence": "" }
+      ]
     },
     {
-      "id": "responsibilities",
-      "title": "3. Responsibilities",
-      "type": "static",
-      "content": "Prepared by: {default_prepared_by_role}\nApproved by: {default_approved_by_role}"
+      "id": "action_plan",
+      "title": "5. Action Plan",
+      "type": "table_spec",
+      "columns": [
+        { "key": "act_id", "label": "Action ID", "width": 1100 },
+        { "key": "type", "label": "Type (C/CA/PA)", "width": 1500 },
+        { "key": "description", "label": "Action Description", "width": 4200 },
+        { "key": "owner", "label": "Owner", "width": 1600 },
+        { "key": "due_date", "label": "Due Date", "width": 1160 }
+      ],
+      "rows": [
+        { "act_id": "A-1", "type": "", "description": "", "owner": "", "due_date": "" },
+        { "act_id": "A-2", "type": "", "description": "", "owner": "", "due_date": "" },
+        { "act_id": "A-3", "type": "", "description": "", "owner": "", "due_date": "" }
+      ]
     },
     {
-      "id": "approval_block",
-      "title": "",
-      "type": "approval_block"
+      "id": "risk_review",
+      "title": "6. Risk & Documentation Impact Review",
+      "type": "ai_generated",
+      "section_prompt": "Provide a short checklist: does this CAPA change residual risk in {ref:RD-007}? does it require updates to design outputs {ref:RD-003}, procedures, training {ref:HR-003}, or supplier controls {ref:SC-005}? Each item answered Yes/No with reference."
     },
     {
-      "id": "revision_history",
-      "title": "Revision History",
-      "type": "table",
-      "table_source": "revision_history"
-    }
+      "id": "effectiveness",
+      "title": "7. Effectiveness Verification Plan",
+      "type": "ai_generated",
+      "section_prompt": "Template guidance to define the effectiveness check per {ref:CA-008}: metric, sample size, monitoring period (typically 3\u20136 months), acceptance criterion, reviewer."
+    },
+    {
+      "id": "approvals",
+      "title": "8. Approvals & Closure",
+      "type": "table_spec",
+      "columns": [
+        { "key": "stage", "label": "Stage", "width": 2400 },
+        { "key": "name", "label": "Name", "width": 2400 },
+        { "key": "signature", "label": "Signature", "width": 2400 },
+        { "key": "date", "label": "Date", "width": 2160 }
+      ],
+      "rows": [
+        { "stage": "Plan approved", "name": "", "signature": "", "date": "" },
+        { "stage": "Actions complete", "name": "", "signature": "", "date": "" },
+        { "stage": "Effectiveness verified", "name": "", "signature": "", "date": "" },
+        { "stage": "CAPA closed", "name": "", "signature": "", "date": "" }
+      ]
+    },
+    { "id": "revision_history", "title": "Revision History", "type": "table", "table_source": "revision_history" }
   ],
   "validation_rules": {
-    "emits": [
-      "ca-002_approval",
-      "role_names"
-    ],
-    "consumes": [
-      "qa_manager_role_name",
-      "company_legal_name"
-    ],
-    "required_sections_for_markets": {
-      "EU": [
-        "scope",
-        "purpose"
-      ],
-      "US": [
-        "scope",
-        "purpose"
-      ]
-    }
+    "emits": ["capa_record"],
+    "consumes": ["capa_process_baseline"]
   },
-  "dependencies": [],
+  "dependencies": ["CA-001"],
   "output_config": {
     "page_size": "A4",
-    "header": "{company_legal_name} | CA-002 | Rev {revision_number}",
-    "footer": "CONFIDENTIAL \u2014 Controlled Document | ISO 13485:2016"
+    "header": "{company_legal_name} | CA-002 CAPA Form | Rev {revision_number}",
+    "footer": "CONFIDENTIAL \u2014 Controlled Record | ISO 13485:2016 \u00a78.5.2"
   }
 }

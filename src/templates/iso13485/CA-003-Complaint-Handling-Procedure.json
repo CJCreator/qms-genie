@@ -2,111 +2,71 @@
   "meta": {
     "document_code": "CA-003",
     "document_name": "Complaint Handling Procedure",
-    "department": "CAPA",
-    "iso_clauses": [
-      "8.2.3"
-    ],
+    "department": "CA",
+    "iso_clauses": ["8.2.2"],
     "default_prepared_by_role": "QA Manager",
     "default_approved_by_role": "QA Director",
     "retention_period": "Life of device + 10 years",
-    "applicable_device_types": [
-      "hardware",
-      "software",
-      "hims",
-      "combination"
-    ],
-    "applicable_markets": [
-      "EU",
-      "US",
-      "UK",
-      "global"
-    ]
+    "applicable_device_types": ["hardware", "software", "hims", "combination"],
+    "applicable_markets": ["EU", "US", "UK", "global"]
   },
   "inputs": [
-    {
-      "id": "company_legal_name",
-      "label": "Company Legal Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    },
-    {
-      "id": "device_name_model",
-      "label": "Device Name & Model",
-      "type": "text",
-      "required": true,
-      "source": "device_record"
-    },
-    {
-      "id": "qa_manager_name",
-      "label": "QA Manager Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    }
+    { "id": "company_legal_name", "label": "Company Legal Name", "type": "text", "required": true, "source": "company_profile" },
+    { "id": "complaint_intake_channel", "label": "Complaint Intake Channel", "type": "text", "required": false, "source": "company_profile" }
   ],
   "sections": [
+    { "id": "header", "title": "", "type": "static", "content": "ISO 13485:2016 \u00a78.2.2 \u2014 Complaint Handling Procedure\nDocument Code: CA-003\nRevision: {revision_number}" },
+    { "id": "purpose", "title": "1. Purpose", "type": "ai_generated", "section_prompt": "State that this procedure defines how {company_legal_name} receives, evaluates, investigates, and closes complaints per ISO 13485:2016 \u00a78.2.2, 21 CFR 820.198, and EU MDR Article 87\u201392. Complaints feed CAPA ({ref:CA-001}), vigilance ({ref:CA-005}), and PMS ({ref:RA-005})." },
+    { "id": "scope", "title": "2. Scope", "type": "variable", "content": "Applies to all complaints received by {company_legal_name} from any source. Intake channels: {complaint_intake_channel}." },
     {
-      "id": "header",
-      "title": "",
-      "type": "static",
-      "content": "ISO 13485:2016\nComplaint Handling Procedure\nDocument Code: CA-003\nRevision: {revision_number}"
+      "id": "process",
+      "title": "3. Process Steps",
+      "type": "clause_block",
+      "clauses": [
+        "3.1 Intake and logging within 1 working day on {ref:CA-004}",
+        "3.2 Initial assessment: is it a complaint? does it require regulatory reporting?",
+        "3.3 Risk-based triage and investigation planning",
+        "3.4 Investigation including device return/analysis where applicable",
+        "3.5 Regulatory reporting decision: MDR (FDA), Vigilance (EU MDR Annex), MHRA, etc. via {ref:CA-005}",
+        "3.6 Field Safety Corrective Action evaluation via {ref:CA-006}",
+        "3.7 CAPA decision per {ref:CA-001}",
+        "3.8 Complainant communication and closure"
+      ],
+      "section_prompt": "For each step, give responsible role, timeline, and required record. Include explicit timelines for serious-incident reporting (e.g. 2 days serious public-health threat, 10 days serious incident, 15 days other for EU; 30 days for MDR for FDA)."
     },
     {
-      "id": "purpose",
-      "title": "1. Purpose",
+      "id": "reportability",
+      "title": "4. Reportability Decision Matrix",
+      "type": "table_spec",
+      "columns": [
+        { "key": "scenario", "label": "Scenario", "width": 3600 },
+        { "key": "eu_action", "label": "EU MDR Action", "width": 2400 },
+        { "key": "us_action", "label": "FDA Action", "width": 2400 },
+        { "key": "deadline", "label": "Deadline", "width": 1560 }
+      ],
+      "ai_rows_prompt": "Generate 6\u20138 scenarios: death; serious deterioration; serious public-health threat; near-incident without harm; component failure without harm; cosmetic complaint; cybersecurity incident; usability error causing harm. Specify EU MDR action, FDA MDR action and statutory deadline. Return JSON array."
+    },
+    {
+      "id": "metrics",
+      "title": "5. Metrics & Trending",
       "type": "ai_generated",
-      "section_prompt": "Draft a clear, regulatory-compliant purpose statement for the Complaint Handling Procedure document under ISO 13485:2016 for a medical device company.",
-      "editable": true
+      "section_prompt": "Describe trending performed on complaint data (rate per 1000 units, top failure modes, time-to-close) and how trends trigger CAPA per {ref:CA-001} and feed management review {ref:QP-005}."
     },
-    {
-      "id": "scope",
-      "title": "2. Scope",
-      "type": "variable",
-      "content": "This document establishes the complaint handling procedure for {company_legal_name} and applies to all relevant QMS processes."
-    },
-    {
-      "id": "responsibilities",
-      "title": "3. Responsibilities",
-      "type": "static",
-      "content": "Prepared by: {default_prepared_by_role}\nApproved by: {default_approved_by_role}"
-    },
-    {
-      "id": "approval_block",
-      "title": "",
-      "type": "approval_block"
-    },
-    {
-      "id": "revision_history",
-      "title": "Revision History",
-      "type": "table",
-      "table_source": "revision_history"
-    }
+    { "id": "approval_block", "title": "", "type": "approval_block" },
+    { "id": "revision_history", "title": "Revision History", "type": "table", "table_source": "revision_history" }
   ],
   "validation_rules": {
-    "emits": [
-      "ca-003_approval",
-      "role_names"
-    ],
-    "consumes": [
-      "qa_manager_role_name",
-      "company_legal_name"
-    ],
+    "emits": ["complaint_process_baseline"],
+    "consumes": ["company_legal_name"],
     "required_sections_for_markets": {
-      "EU": [
-        "scope",
-        "purpose"
-      ],
-      "US": [
-        "scope",
-        "purpose"
-      ]
+      "EU": ["process", "reportability"],
+      "US": ["process", "reportability"]
     }
   },
-  "dependencies": [],
+  "dependencies": ["QP-001"],
   "output_config": {
     "page_size": "A4",
-    "header": "{company_legal_name} | CA-003 | Rev {revision_number}",
-    "footer": "CONFIDENTIAL \u2014 Controlled Document | ISO 13485:2016"
+    "header": "{company_legal_name} | CA-003 Complaints | Rev {revision_number}",
+    "footer": "CONFIDENTIAL \u2014 Controlled Document | ISO 13485:2016 \u00a78.2.2"
   }
 }

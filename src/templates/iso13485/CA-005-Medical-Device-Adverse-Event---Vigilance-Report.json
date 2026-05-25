@@ -2,111 +2,90 @@
   "meta": {
     "document_code": "CA-005",
     "document_name": "Medical Device Adverse Event / Vigilance Report",
-    "department": "CAPA",
-    "iso_clauses": [
-      "8.2.3"
-    ],
-    "default_prepared_by_role": "QA Manager",
+    "department": "CA",
+    "iso_clauses": ["8.2.3"],
+    "default_prepared_by_role": "Regulatory Affairs Manager",
     "default_approved_by_role": "QA Director",
-    "retention_period": "Life of device + 10 years",
-    "applicable_device_types": [
-      "hardware",
-      "software",
-      "hims",
-      "combination"
-    ],
-    "applicable_markets": [
-      "EU",
-      "US",
-      "UK",
-      "global"
-    ]
+    "retention_period": "Life of device + 15 years",
+    "applicable_device_types": ["hardware", "software", "hims", "combination"],
+    "applicable_markets": ["EU", "US", "UK", "global"]
   },
   "inputs": [
-    {
-      "id": "company_legal_name",
-      "label": "Company Legal Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    },
-    {
-      "id": "device_name_model",
-      "label": "Device Name & Model",
-      "type": "text",
-      "required": true,
-      "source": "device_record"
-    },
-    {
-      "id": "qa_manager_name",
-      "label": "QA Manager Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    }
+    { "id": "company_legal_name", "label": "Company Legal Name", "type": "text", "required": true, "source": "company_profile" },
+    { "id": "device_name_model", "label": "Device Name & Model", "type": "text", "required": true, "source": "device_record" }
   ],
   "sections": [
+    { "id": "header", "title": "", "type": "static", "content": "Vigilance / Adverse Event Report\nDocument Code: CA-005\nRevision: {revision_number}\nDevice: {device_name_model}\nGoverned by: {ref:CA-003}" },
+    { "id": "purpose", "title": "1. Purpose", "type": "ai_generated", "section_prompt": "State that this report documents a reportable event involving {device_name_model} per EU MDR Articles 87\u201392, 21 CFR 803 (FDA MDR), MHRA Yellow Card, and equivalent regulations as applicable." },
     {
-      "id": "header",
-      "title": "",
-      "type": "static",
-      "content": "ISO 13485:2016\nMedical Device Adverse Event / Vigilance Report\nDocument Code: CA-005\nRevision: {revision_number}"
+      "id": "event_details",
+      "title": "2. Event Details",
+      "type": "table_spec",
+      "columns": [
+        { "key": "field", "label": "Field", "width": 3200 },
+        { "key": "value", "label": "Value", "width": 7360 }
+      ],
+      "rows": [
+        { "field": "Internal Reference (links to complaint log {ref:CA-004})", "value": "" },
+        { "field": "Date Event Occurred", "value": "" },
+        { "field": "Date Becoming Aware", "value": "" },
+        { "field": "Reporting Deadline", "value": "" },
+        { "field": "Country of Event", "value": "" },
+        { "field": "Reporting Channel (Eudamed / FDA eMDR / MHRA)", "value": "" }
+      ]
     },
     {
-      "id": "purpose",
-      "title": "1. Purpose",
-      "type": "ai_generated",
-      "section_prompt": "Draft a clear, regulatory-compliant purpose statement for the Medical Device Adverse Event / Vigilance Report document under ISO 13485:2016 for a medical device company.",
-      "editable": true
-    },
-    {
-      "id": "scope",
-      "title": "2. Scope",
+      "id": "device_info",
+      "title": "3. Device Information",
       "type": "variable",
-      "content": "This document establishes the medical device adverse event / vigilance report for {company_legal_name} and applies to all relevant QMS processes."
+      "content": "Device: {device_name_model}\nManufacturer: {company_legal_name}\nUDI-DI: ____\nLot / Serial: ____\nSoftware Version (if applicable): ____"
     },
     {
-      "id": "responsibilities",
-      "title": "3. Responsibilities",
-      "type": "static",
-      "content": "Prepared by: {default_prepared_by_role}\nApproved by: {default_approved_by_role}"
+      "id": "event_description",
+      "title": "4. Event Description",
+      "type": "ai_generated",
+      "section_prompt": "Guidance template for describing the event: chronology, patient demographics (anonymised), clinical outcome, severity classification (death / serious deterioration / serious public-health threat / other), and immediate clinical actions taken."
     },
     {
-      "id": "approval_block",
-      "title": "",
-      "type": "approval_block"
+      "id": "investigation",
+      "title": "5. Manufacturer Investigation Summary",
+      "type": "ai_generated",
+      "section_prompt": "Outline expected content: root cause hypothesis, returned-device analysis results, lot history check, risk re-evaluation against {ref:RD-007}, similar-event search in complaints database."
     },
     {
-      "id": "revision_history",
-      "title": "Revision History",
-      "type": "table",
-      "table_source": "revision_history"
-    }
+      "id": "regulatory_actions",
+      "title": "6. Regulatory Reporting Matrix",
+      "type": "table_spec",
+      "columns": [
+        { "key": "authority", "label": "Authority", "width": 2200 },
+        { "key": "form", "label": "Form / System", "width": 2200 },
+        { "key": "deadline", "label": "Statutory Deadline", "width": 2200 },
+        { "key": "submitted_on", "label": "Submitted On", "width": 1700 },
+        { "key": "reference", "label": "Acknowledgement Ref", "width": 1860 }
+      ],
+      "ai_rows_prompt": "Generate rows for the markets in scope (EU MDR via Eudamed MIR; FDA via eMDR 3500A; MHRA Yellow Card; Health Canada MDR; Australia TGA IRIS; Japan PMDA). Include statutory deadline (2/10/15 days for EU; 30 days FDA; etc.). Leave submitted/reference blank for completion. Return JSON array."
+    },
+    {
+      "id": "follow_up",
+      "title": "7. Follow-Up & FSCA Decision",
+      "type": "ai_generated",
+      "section_prompt": "Describe the periodic follow-up (initial, follow-up, final) and link to FSCA assessment in {ref:CA-006} and CAPA in {ref:CA-001} if applicable."
+    },
+    { "id": "approval_block", "title": "", "type": "approval_block" },
+    { "id": "revision_history", "title": "Revision History", "type": "table", "table_source": "revision_history" }
   ],
   "validation_rules": {
-    "emits": [
-      "ca-005_approval",
-      "role_names"
-    ],
-    "consumes": [
-      "qa_manager_role_name",
-      "company_legal_name"
-    ],
+    "emits": ["vigilance_record"],
+    "consumes": ["complaint_process_baseline", "device_name_model"],
     "required_sections_for_markets": {
-      "EU": [
-        "scope",
-        "purpose"
-      ],
-      "US": [
-        "scope",
-        "purpose"
-      ]
+      "EU": ["event_details", "regulatory_actions"],
+      "US": ["event_details", "regulatory_actions"]
     }
   },
-  "dependencies": [],
+  "dependencies": ["CA-003"],
   "output_config": {
     "page_size": "A4",
-    "header": "{company_legal_name} | CA-005 | Rev {revision_number}",
-    "footer": "CONFIDENTIAL \u2014 Controlled Document | ISO 13485:2016"
+    "header": "{company_legal_name} | CA-005 Vigilance | {device_name_model} | Rev {revision_number}",
+    "footer": "CONFIDENTIAL \u2014 Controlled Record | EU MDR Art. 87 / 21 CFR 803"
   }
 }
