@@ -3,110 +3,77 @@
     "document_code": "SW-009",
     "document_name": "Cybersecurity Risk Assessment (SOUP included)",
     "department": "SW",
-    "iso_clauses": [
-      "7.1"
-    ],
-    "default_prepared_by_role": "SW Lead",
+    "iso_clauses": ["7.1", "7.3.3"],
+    "default_prepared_by_role": "Security Lead",
     "default_approved_by_role": "QA Director",
     "retention_period": "Life of device + 10 years",
-    "applicable_device_types": [
-      "hardware",
-      "software",
-      "hims",
-      "combination"
-    ],
-    "applicable_markets": [
-      "EU",
-      "US",
-      "UK",
-      "global"
-    ]
+    "applicable_device_types": ["software", "hims", "combination"],
+    "applicable_markets": ["EU", "US", "UK", "global"]
   },
   "inputs": [
-    {
-      "id": "company_legal_name",
-      "label": "Company Legal Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    },
-    {
-      "id": "device_name_model",
-      "label": "Device Name & Model",
-      "type": "text",
-      "required": true,
-      "source": "device_record"
-    },
-    {
-      "id": "qa_manager_name",
-      "label": "QA Manager Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    }
+    { "id": "company_legal_name", "label": "Company Legal Name", "type": "text", "required": true, "source": "company_profile" },
+    { "id": "device_name_model", "label": "Software / Device Name", "type": "text", "required": true, "source": "device_record" }
   ],
   "sections": [
+    { "id": "header", "title": "", "type": "static", "content": "AAMI TIR57 / FDA Cybersecurity / EU MDR \u2014 Cybersecurity Risk Assessment\nDocument Code: SW-009\nRevision: {revision_number}\nSoftware: {device_name_model}" },
+    { "id": "purpose", "title": "1. Purpose", "type": "ai_generated", "section_prompt": "State that this assessment evaluates cybersecurity risks for {device_name_model} per FDA Premarket Cybersecurity Guidance (2023), AAMI TIR57, and EU MDR Annex I 17.2. Risk-control measures feed back into {ref:RD-007} and software requirements {ref:SW-002}." },
     {
-      "id": "header",
-      "title": "",
-      "type": "static",
-      "content": "ISO 13485:2016\nCybersecurity Risk Assessment (SOUP included)\nDocument Code: SW-009\nRevision: {revision_number}"
+      "id": "framework",
+      "title": "2. Framework",
+      "type": "clause_block",
+      "clauses": [
+        "2.1 Asset identification and trust boundaries",
+        "2.2 Threat modelling (STRIDE)",
+        "2.3 Vulnerability assessment (SOUP CVEs, static/dynamic analysis, penetration test)",
+        "2.4 Risk estimation using CVSS v3.1 base + environmental",
+        "2.5 Risk control: secure design, defense in depth, secure update, logging",
+        "2.6 Post-market vulnerability monitoring and coordinated disclosure"
+      ],
+      "section_prompt": "For each clause, describe how it is executed for {device_name_model}. Reference SBOM source and update cadence."
     },
     {
-      "id": "purpose",
-      "title": "1. Purpose",
+      "id": "threat_register",
+      "title": "3. Threat & Vulnerability Register",
+      "type": "table_spec",
+      "columns": [
+        { "key": "threat_id", "label": "Threat ID", "width": 900 },
+        { "key": "asset", "label": "Asset", "width": 1700 },
+        { "key": "threat", "label": "Threat (STRIDE)", "width": 1800 },
+        { "key": "vector", "label": "Attack Vector", "width": 1700 },
+        { "key": "cvss", "label": "CVSS", "width": 700 },
+        { "key": "control", "label": "Control / Mitigation", "width": 2200 },
+        { "key": "residual", "label": "Residual CVSS", "width": 960 }
+      ],
+      "ai_rows_prompt": "Generate 10\u201316 threats for {device_name_model}. Cover STRIDE categories. Include at least 2 SOUP-CVE threats referencing the SOUP register in {ref:SW-003}. CVSS as decimal 0.0\u201310.0; residual must be \u2264 base. Controls realistic (TLS 1.3, mTLS, RBAC, signed updates, secure boot, input validation, rate limiting, audit log). Return JSON array.",
+      "min_rows": 10
+    },
+    {
+      "id": "soup_cve_monitoring",
+      "title": "4. SOUP CVE Monitoring",
       "type": "ai_generated",
-      "section_prompt": "Draft a clear, regulatory-compliant purpose statement for the Cybersecurity Risk Assessment (SOUP included) document under ISO 13485:2016 for a medical device company.",
-      "editable": true
+      "section_prompt": "Describe how SBOM is maintained, how new CVEs against SOUP components from {ref:SW-003} are detected (NVD feed, Dependabot, supplier bulletins), triaged within an SLA (e.g. critical within 48h), and patched via {ref:SW-010} configuration management and {ref:HI-009} change control."
     },
     {
-      "id": "scope",
-      "title": "2. Scope",
-      "type": "variable",
-      "content": "This document establishes the cybersecurity risk assessment (soup included) for {company_legal_name} and applies to all relevant QMS processes."
+      "id": "disclosure",
+      "title": "5. Coordinated Vulnerability Disclosure",
+      "type": "ai_generated",
+      "section_prompt": "Describe the coordinated vulnerability disclosure policy for {company_legal_name}, including contact channel, acknowledgement SLA, fix timeline, and customer notification through {ref:CA-006} FSCA when applicable."
     },
-    {
-      "id": "responsibilities",
-      "title": "3. Responsibilities",
-      "type": "static",
-      "content": "Prepared by: {default_prepared_by_role}\nApproved by: {default_approved_by_role}"
-    },
-    {
-      "id": "approval_block",
-      "title": "",
-      "type": "approval_block"
-    },
-    {
-      "id": "revision_history",
-      "title": "Revision History",
-      "type": "table",
-      "table_source": "revision_history"
-    }
+    { "id": "approval_block", "title": "", "type": "approval_block" },
+    { "id": "revision_history", "title": "Revision History", "type": "table", "table_source": "revision_history" }
   ],
   "validation_rules": {
-    "emits": [
-      "sw-009_approval",
-      "role_names"
-    ],
-    "consumes": [
-      "qa_manager_role_name",
-      "company_legal_name"
-    ],
+    "emits": ["cybersecurity_baseline"],
+    "consumes": ["sw_architecture_baseline", "soup_register", "risk_baseline"],
     "required_sections_for_markets": {
-      "EU": [
-        "scope",
-        "purpose"
-      ],
-      "US": [
-        "scope",
-        "purpose"
-      ]
+      "EU": ["threat_register", "soup_cve_monitoring"],
+      "US": ["threat_register", "soup_cve_monitoring", "disclosure"]
     }
   },
-  "dependencies": [],
+  "dependencies": ["SW-001", "SW-003", "RD-007"],
   "output_config": {
     "page_size": "A4",
-    "header": "{company_legal_name} | SW-009 | Rev {revision_number}",
-    "footer": "CONFIDENTIAL \u2014 Controlled Document | ISO 13485:2016"
+    "header": "{company_legal_name} | SW-009 Cybersecurity | {device_name_model} | Rev {revision_number}",
+    "footer": "CONFIDENTIAL \u2014 Controlled Document | FDA / EU MDR Cybersecurity"
   }
 }

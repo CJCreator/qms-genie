@@ -3,110 +3,79 @@
     "document_code": "SW-001",
     "document_name": "Software Development Plan (SDP)",
     "department": "SW",
-    "iso_clauses": [
-      "7.3"
-    ],
-    "default_prepared_by_role": "SW Lead",
+    "iso_clauses": ["7.3.2"],
+    "default_prepared_by_role": "Software Lead",
     "default_approved_by_role": "QA Director",
     "retention_period": "Life of device + 10 years",
-    "applicable_device_types": [
-      "hardware",
-      "software",
-      "hims",
-      "combination"
-    ],
-    "applicable_markets": [
-      "EU",
-      "US",
-      "UK",
-      "global"
-    ]
+    "applicable_device_types": ["software", "hims", "combination"],
+    "applicable_markets": ["EU", "US", "UK", "global"]
   },
   "inputs": [
-    {
-      "id": "company_legal_name",
-      "label": "Company Legal Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    },
-    {
-      "id": "device_name_model",
-      "label": "Device Name & Model",
-      "type": "text",
-      "required": true,
-      "source": "device_record"
-    },
-    {
-      "id": "qa_manager_name",
-      "label": "QA Manager Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    }
+    { "id": "company_legal_name", "label": "Company Legal Name", "type": "text", "required": true, "source": "company_profile" },
+    { "id": "device_name_model", "label": "Software / Device Name", "type": "text", "required": true, "source": "device_record" },
+    { "id": "software_safety_class", "label": "IEC 62304 Safety Class (A/B/C)", "type": "text", "required": true, "source": "device_record" }
   ],
   "sections": [
+    { "id": "header", "title": "", "type": "static", "content": "IEC 62304 / ISO 13485:2016 \u00a77.3.2 \u2014 Software Development Plan\nDocument Code: SW-001\nRevision: {revision_number}\nSoftware: {device_name_model} | Safety Class {software_safety_class}" },
+    { "id": "purpose", "title": "1. Purpose", "type": "ai_generated", "section_prompt": "State that this SDP defines the software development lifecycle for {device_name_model} (IEC 62304 Class {software_safety_class}) and integrates with the overall Design & Development Plan {ref:RD-001} and Risk Management File {ref:RD-007}." },
+    { "id": "scope", "title": "2. Scope", "type": "variable", "content": "Applies to all software items in {device_name_model} developed or maintained by {company_legal_name}, including SOUP, configurable items and supporting tools." },
     {
-      "id": "header",
-      "title": "",
-      "type": "static",
-      "content": "ISO 13485:2016\nSoftware Development Plan (SDP)\nDocument Code: SW-001\nRevision: {revision_number}"
+      "id": "lifecycle",
+      "title": "3. Software Lifecycle Activities (IEC 62304 \u00a75)",
+      "type": "clause_block",
+      "clauses": [
+        "3.1 Software development planning (this document)",
+        "3.2 Software requirements analysis ({ref:SW-002})",
+        "3.3 Software architectural design ({ref:SW-003})",
+        "3.4 Software detailed design ({ref:SW-004})",
+        "3.5 Unit implementation and verification ({ref:SW-005})",
+        "3.6 Software integration and integration testing ({ref:SW-006})",
+        "3.7 Software system testing ({ref:SW-007})",
+        "3.8 Software release ({ref:SW-008})"
+      ],
+      "section_prompt": "For each activity, describe the deliverables, entry/exit criteria, responsible role, and tailoring applied based on the IEC 62304 Class {software_safety_class} safety classification. Be specific."
     },
     {
-      "id": "purpose",
-      "title": "1. Purpose",
+      "id": "tooling",
+      "title": "4. Development Tools, Environments & Standards",
+      "type": "table_spec",
+      "columns": [
+        { "key": "category", "label": "Category", "width": 1800 },
+        { "key": "tool", "label": "Tool / Standard", "width": 2400 },
+        { "key": "purpose", "label": "Purpose", "width": 3000 },
+        { "key": "version_control", "label": "Version Control / Validation", "width": 2160 }
+      ],
+      "ai_rows_prompt": "List 8\u201312 realistic tools/standards for medical-device software development of {device_name_model}: IDE, version control (Git), CI/CD, bug tracker, requirements tool, static analysis, unit test framework, integration test framework, coding standard (MISRA-C / Google C++ / TypeScript strict), IEC 62304, IEC 82304, FDA cybersecurity guidance. Return JSON array."
+    },
+    {
+      "id": "config_mgmt",
+      "title": "5. Configuration Management & Problem Resolution",
       "type": "ai_generated",
-      "section_prompt": "Draft a clear, regulatory-compliant purpose statement for the Software Development Plan (SDP) document under ISO 13485:2016 for a medical device company.",
-      "editable": true
+      "section_prompt": "Summarise how software configuration management is performed per {ref:SW-010} and how software problems are tracked and resolved per {ref:SW-011}. Include SOUP control and traceability to {ref:SW-009}."
     },
     {
-      "id": "scope",
-      "title": "2. Scope",
-      "type": "variable",
-      "content": "This document establishes the software development plan (sdp) for {company_legal_name} and applies to all relevant QMS processes."
+      "id": "deliverables",
+      "title": "6. Planned Deliverables & Milestones",
+      "type": "table_spec",
+      "columns": [
+        { "key": "milestone", "label": "Milestone", "width": 2400 },
+        { "key": "deliverables", "label": "Deliverables", "width": 4000 },
+        { "key": "review_gate", "label": "Review Gate", "width": 2960 }
+      ],
+      "ai_rows_prompt": "Generate 5\u20137 milestones (Plan baseline, Requirements baseline, Architecture baseline, Code complete, V&V complete, Release) with linked deliverables (SW-002..SW-008) and the design review ({ref:RD-004}) that gates each. Return JSON array."
     },
-    {
-      "id": "responsibilities",
-      "title": "3. Responsibilities",
-      "type": "static",
-      "content": "Prepared by: {default_prepared_by_role}\nApproved by: {default_approved_by_role}"
-    },
-    {
-      "id": "approval_block",
-      "title": "",
-      "type": "approval_block"
-    },
-    {
-      "id": "revision_history",
-      "title": "Revision History",
-      "type": "table",
-      "table_source": "revision_history"
-    }
+    { "id": "approval_block", "title": "", "type": "approval_block" },
+    { "id": "revision_history", "title": "Revision History", "type": "table", "table_source": "revision_history" }
   ],
   "validation_rules": {
-    "emits": [
-      "sw-001_approval",
-      "role_names"
-    ],
-    "consumes": [
-      "qa_manager_role_name",
-      "company_legal_name"
-    ],
-    "required_sections_for_markets": {
-      "EU": [
-        "scope",
-        "purpose"
-      ],
-      "US": [
-        "scope",
-        "purpose"
-      ]
-    }
+    "emits": ["software_plan_baseline"],
+    "consumes": ["software_safety_class", "device_name_model"],
+    "required_sections_for_markets": { "EU": ["lifecycle", "tooling"], "US": ["lifecycle", "tooling"] }
   },
-  "dependencies": [],
+  "dependencies": ["RD-001", "RD-007"],
   "output_config": {
     "page_size": "A4",
-    "header": "{company_legal_name} | SW-001 | Rev {revision_number}",
-    "footer": "CONFIDENTIAL \u2014 Controlled Document | ISO 13485:2016"
+    "header": "{company_legal_name} | SW-001 SDP | {device_name_model} | Rev {revision_number}",
+    "footer": "CONFIDENTIAL \u2014 Controlled Document | IEC 62304"
   }
 }

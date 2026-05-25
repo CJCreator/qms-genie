@@ -3,110 +3,79 @@
     "document_code": "SW-003",
     "document_name": "Software Architecture Document (SAD)",
     "department": "SW",
-    "iso_clauses": [
-      "7.3.3"
-    ],
-    "default_prepared_by_role": "SW Lead",
+    "iso_clauses": ["7.3.3"],
+    "default_prepared_by_role": "Software Architect",
     "default_approved_by_role": "QA Director",
     "retention_period": "Life of device + 10 years",
-    "applicable_device_types": [
-      "hardware",
-      "software",
-      "hims",
-      "combination"
-    ],
-    "applicable_markets": [
-      "EU",
-      "US",
-      "UK",
-      "global"
-    ]
+    "applicable_device_types": ["software", "hims", "combination"],
+    "applicable_markets": ["EU", "US", "UK", "global"]
   },
   "inputs": [
-    {
-      "id": "company_legal_name",
-      "label": "Company Legal Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    },
-    {
-      "id": "device_name_model",
-      "label": "Device Name & Model",
-      "type": "text",
-      "required": true,
-      "source": "device_record"
-    },
-    {
-      "id": "qa_manager_name",
-      "label": "QA Manager Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    }
+    { "id": "company_legal_name", "label": "Company Legal Name", "type": "text", "required": true, "source": "company_profile" },
+    { "id": "device_name_model", "label": "Software / Device Name", "type": "text", "required": true, "source": "device_record" },
+    { "id": "software_safety_class", "label": "IEC 62304 Safety Class", "type": "text", "required": true, "source": "device_record" }
   ],
   "sections": [
+    { "id": "header", "title": "", "type": "static", "content": "IEC 62304 \u00a75.3 \u2014 Software Architecture Document\nDocument Code: SW-003\nRevision: {revision_number}\nSoftware: {device_name_model} | Class {software_safety_class}" },
+    { "id": "purpose", "title": "1. Purpose", "type": "ai_generated", "section_prompt": "State that this SAD partitions {device_name_model} into software items, identifies SOUP, and shows how each software requirement from {ref:SW-002} is realised. Required for IEC 62304 Class {software_safety_class}." },
     {
-      "id": "header",
-      "title": "",
-      "type": "static",
-      "content": "ISO 13485:2016\nSoftware Architecture Document (SAD)\nDocument Code: SW-003\nRevision: {revision_number}"
+      "id": "principles",
+      "title": "2. Architectural Principles (IEC 62304 \u00a75.3)",
+      "type": "clause_block",
+      "clauses": [
+        "2.1 Transform software requirements into an architecture that describes software items",
+        "2.2 Develop architecture for the interfaces of software items (external and internal)",
+        "2.3 Specify functional and performance requirements of SOUP items",
+        "2.4 Specify system hardware and software required by SOUP items",
+        "2.5 Identify segregation between software items necessary for risk control"
+      ],
+      "section_prompt": "For each principle, describe how it is realised for {device_name_model}. Highlight any segregation between safety-critical and non-safety-critical items."
     },
     {
-      "id": "purpose",
-      "title": "1. Purpose",
+      "id": "items",
+      "title": "3. Software Items Inventory",
+      "type": "table_spec",
+      "columns": [
+        { "key": "item_id", "label": "Item ID", "width": 900 },
+        { "key": "name", "label": "Software Item", "width": 2400 },
+        { "key": "type", "label": "Type", "width": 1200 },
+        { "key": "class", "label": "Item Class (A/B/C)", "width": 1200 },
+        { "key": "responsibility", "label": "Responsibility", "width": 2400 },
+        { "key": "interfaces", "label": "Key Interfaces", "width": 1460 }
+      ],
+      "ai_rows_prompt": "Generate 8\u201312 software items for {device_name_model}. Mix internal items (UI, business logic, data layer, hardware abstraction, alarm engine, audit log) and SOUP (OS, web framework, database, crypto library). Type one of Internal|SOUP. Item class \u2264 system class {software_safety_class}; justify any reduction in detailed_design notes via item name. Return JSON array."
+    },
+    {
+      "id": "soup",
+      "title": "4. SOUP Register",
+      "type": "table_spec",
+      "columns": [
+        { "key": "soup_name", "label": "SOUP", "width": 1800 },
+        { "key": "version", "label": "Version", "width": 1100 },
+        { "key": "supplier", "label": "Supplier / Source", "width": 1800 },
+        { "key": "purpose", "label": "Purpose in {device_name_model}", "width": 2400 },
+        { "key": "anomaly_monitoring", "label": "Anomaly / CVE Monitoring", "width": 2260 }
+      ],
+      "ai_rows_prompt": "List 5\u20138 plausible SOUP components used by {device_name_model} (OS, language runtime, web framework, database, crypto/TLS library, HTTP server, image codec). Anomaly monitoring describes how CVEs and bug lists are tracked (e.g. NVD subscription, supplier advisories, Dependabot). Return JSON array."
+    },
+    {
+      "id": "diagrams",
+      "title": "5. Architecture Diagrams",
       "type": "ai_generated",
-      "section_prompt": "Draft a clear, regulatory-compliant purpose statement for the Software Architecture Document (SAD) document under ISO 13485:2016 for a medical device company.",
-      "editable": true
+      "section_prompt": "Describe the layered architecture, deployment topology, and data-flow of {device_name_model} in prose suitable to accompany diagrams stored alongside this document. Reference where diagrams are maintained ({ref:HI-002} for HIMS data flow if applicable)."
     },
-    {
-      "id": "scope",
-      "title": "2. Scope",
-      "type": "variable",
-      "content": "This document establishes the software architecture document (sad) for {company_legal_name} and applies to all relevant QMS processes."
-    },
-    {
-      "id": "responsibilities",
-      "title": "3. Responsibilities",
-      "type": "static",
-      "content": "Prepared by: {default_prepared_by_role}\nApproved by: {default_approved_by_role}"
-    },
-    {
-      "id": "approval_block",
-      "title": "",
-      "type": "approval_block"
-    },
-    {
-      "id": "revision_history",
-      "title": "Revision History",
-      "type": "table",
-      "table_source": "revision_history"
-    }
+    { "id": "approval_block", "title": "", "type": "approval_block" },
+    { "id": "revision_history", "title": "Revision History", "type": "table", "table_source": "revision_history" }
   ],
   "validation_rules": {
-    "emits": [
-      "sw-003_approval",
-      "role_names"
-    ],
-    "consumes": [
-      "qa_manager_role_name",
-      "company_legal_name"
-    ],
-    "required_sections_for_markets": {
-      "EU": [
-        "scope",
-        "purpose"
-      ],
-      "US": [
-        "scope",
-        "purpose"
-      ]
-    }
+    "emits": ["sw_architecture_baseline", "soup_register"],
+    "consumes": ["sw_requirements_baseline"],
+    "required_sections_for_markets": { "EU": ["items", "soup"], "US": ["items", "soup"] }
   },
-  "dependencies": [],
+  "dependencies": ["SW-001", "SW-002"],
   "output_config": {
     "page_size": "A4",
-    "header": "{company_legal_name} | SW-003 | Rev {revision_number}",
-    "footer": "CONFIDENTIAL \u2014 Controlled Document | ISO 13485:2016"
+    "header": "{company_legal_name} | SW-003 SAD | {device_name_model} | Rev {revision_number}",
+    "footer": "CONFIDENTIAL \u2014 Controlled Document | IEC 62304 \u00a75.3"
   }
 }
