@@ -2,112 +2,74 @@
   "meta": {
     "document_code": "CA-001",
     "document_name": "CAPA Procedure",
-    "department": "CAPA",
-    "iso_clauses": [
-      "8.3",
-      "8.5"
-    ],
+    "department": "CA",
+    "iso_clauses": ["8.5.2", "8.5.3"],
     "default_prepared_by_role": "QA Manager",
     "default_approved_by_role": "QA Director",
     "retention_period": "Life of device + 10 years",
-    "applicable_device_types": [
-      "hardware",
-      "software",
-      "hims",
-      "combination"
-    ],
-    "applicable_markets": [
-      "EU",
-      "US",
-      "UK",
-      "global"
-    ]
+    "applicable_device_types": ["hardware", "software", "hims", "combination"],
+    "applicable_markets": ["EU", "US", "UK", "global"]
   },
   "inputs": [
-    {
-      "id": "company_legal_name",
-      "label": "Company Legal Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    },
-    {
-      "id": "device_name_model",
-      "label": "Device Name & Model",
-      "type": "text",
-      "required": true,
-      "source": "device_record"
-    },
-    {
-      "id": "qa_manager_name",
-      "label": "QA Manager Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    }
+    { "id": "company_legal_name", "label": "Company Legal Name", "type": "text", "required": true, "source": "company_profile" },
+    { "id": "qa_manager_name", "label": "QA Manager Name", "type": "text", "required": true, "source": "company_profile" }
   ],
   "sections": [
+    { "id": "header", "title": "", "type": "static", "content": "ISO 13485:2016 \u00a78.5.2 / \u00a78.5.3 \u2014 CAPA Procedure\nDocument Code: CA-001\nRevision: {revision_number}" },
+    { "id": "purpose", "title": "1. Purpose", "type": "ai_generated", "section_prompt": "State that this procedure defines how {company_legal_name} identifies, investigates, implements, and verifies corrective and preventive actions per ISO 13485:2016 \u00a78.5.2/\u00a78.5.3 and 21 CFR 820.100. It governs records on form {ref:CA-002}." },
+    { "id": "scope", "title": "2. Scope", "type": "variable", "content": "Applies to all quality issues at {company_legal_name} including nonconformities ({ref:CA-007}), complaints ({ref:CA-003}), audit findings ({ref:AU-006}), supplier issues ({ref:SC-006}), and post-market signals ({ref:RA-005})." },
     {
-      "id": "header",
-      "title": "",
-      "type": "static",
-      "content": "ISO 13485:2016\nCAPA Procedure\nDocument Code: CA-001\nRevision: {revision_number}"
+      "id": "process",
+      "title": "3. CAPA Process Steps",
+      "type": "clause_block",
+      "clauses": [
+        "3.1 Issue identification and CAPA initiation",
+        "3.2 Risk-based triage and prioritisation (low / medium / high)",
+        "3.3 Containment / immediate correction",
+        "3.4 Root cause analysis (5 Whys, fishbone, fault tree)",
+        "3.5 Action plan: corrections, corrective actions, preventive actions",
+        "3.6 Implementation and change control",
+        "3.7 Effectiveness verification per {ref:CA-008} (define metric, sample size, period)",
+        "3.8 Closure and management review feed ({ref:QP-005})"
+      ],
+      "section_prompt": "For each step, describe the responsible role, target timeline (e.g. RCA within 10 working days for high), and required record. Reference linkage to risk file {ref:RD-007} when CAPA changes risk acceptability."
     },
     {
-      "id": "purpose",
-      "title": "1. Purpose",
+      "id": "triggers",
+      "title": "4. CAPA Triggers Matrix",
+      "type": "table_spec",
+      "columns": [
+        { "key": "source", "label": "Source", "width": 2200 },
+        { "key": "trigger", "label": "Trigger Condition", "width": 3600 },
+        { "key": "responsible", "label": "Responsible", "width": 1800 },
+        { "key": "target_open", "label": "Open within", "width": 1760 }
+      ],
+      "ai_rows_prompt": "Generate 8\u201310 CAPA triggers: complaint trend, repeat nonconformance, supplier SCAR, internal audit major, external audit, recall/FSCA, adverse event, software defect critical, validation deviation, management review escalation. Return JSON array."
+    },
+    {
+      "id": "roles",
+      "title": "5. Roles & Responsibilities",
       "type": "ai_generated",
-      "section_prompt": "Draft a clear, regulatory-compliant purpose statement for the CAPA Procedure document under ISO 13485:2016 for a medical device company.",
-      "editable": true
+      "section_prompt": "Describe responsibilities of CAPA Owner, QA Manager ({qa_manager_name}), Process Owner, and Management. Be specific about approval authority by CAPA priority level."
     },
     {
-      "id": "scope",
-      "title": "2. Scope",
-      "type": "variable",
-      "content": "This document establishes the capa procedure for {company_legal_name} and applies to all relevant QMS processes."
+      "id": "records",
+      "title": "6. Records & Metrics",
+      "type": "ai_generated",
+      "section_prompt": "List records produced (CAPA form {ref:CA-002}, effectiveness check {ref:CA-008}) and KPIs reported in management review (open CAPA count by age, average closure time, effectiveness pass rate)."
     },
-    {
-      "id": "responsibilities",
-      "title": "3. Responsibilities",
-      "type": "static",
-      "content": "Prepared by: {default_prepared_by_role}\nApproved by: {default_approved_by_role}"
-    },
-    {
-      "id": "approval_block",
-      "title": "",
-      "type": "approval_block"
-    },
-    {
-      "id": "revision_history",
-      "title": "Revision History",
-      "type": "table",
-      "table_source": "revision_history"
-    }
+    { "id": "approval_block", "title": "", "type": "approval_block" },
+    { "id": "revision_history", "title": "Revision History", "type": "table", "table_source": "revision_history" }
   ],
   "validation_rules": {
-    "emits": [
-      "ca-001_approval",
-      "role_names"
-    ],
-    "consumes": [
-      "qa_manager_role_name",
-      "company_legal_name"
-    ],
-    "required_sections_for_markets": {
-      "EU": [
-        "scope",
-        "purpose"
-      ],
-      "US": [
-        "scope",
-        "purpose"
-      ]
-    }
+    "emits": ["capa_process_baseline"],
+    "consumes": ["qa_manager_name"],
+    "required_sections_for_markets": { "EU": ["process", "triggers"], "US": ["process", "triggers"] }
   },
-  "dependencies": [],
+  "dependencies": ["QP-001", "QP-005"],
   "output_config": {
     "page_size": "A4",
-    "header": "{company_legal_name} | CA-001 | Rev {revision_number}",
-    "footer": "CONFIDENTIAL \u2014 Controlled Document | ISO 13485:2016"
+    "header": "{company_legal_name} | CA-001 CAPA Procedure | Rev {revision_number}",
+    "footer": "CONFIDENTIAL \u2014 Controlled Document | ISO 13485:2016 \u00a78.5.2"
   }
 }
