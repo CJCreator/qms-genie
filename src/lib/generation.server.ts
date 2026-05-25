@@ -356,7 +356,7 @@ export async function generateBundle(
   onProgress?: (done: number, total: number, code: string) => void,
 ): Promise<{
   zip: Buffer;
-  entries: { code: string; name: string }[];
+  entries: { code: string; name: string; filename: string; buffer: Buffer }[];
   findings: ValidationFinding[];
 }> {
   const vars = flattenVars(project);
