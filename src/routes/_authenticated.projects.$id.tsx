@@ -116,6 +116,26 @@ function ProjectPage() {
   const genM = useMutation({
     mutationFn: async (args?: { scope: "all" | "department" | "document"; targets?: string[] }) => {
       await saveM.mutateAsync({});
+      // Pre-flight: block on validator errors BEFORE burning AI tokens.
+      const v = await validateFn({
+        data: { project_id: id, ...(args ?? {}) },
+      });
+      if (v.blocking > 0) {
+        const lines = v.findings
+          .filter((f: any) => f.severity === "error")
+          .slice(0, 8)
+          .map((f: any) => `• ${f.field ?? "—"}: ${f.message}`)
+          .join("\n");
+        throw new Error(
+          `Cannot generate — ${v.blocking} blocking issue(s). Fix these in the wizard first:\n\n${lines}`,
+        );
+      }
+      if (v.warnings > 0) {
+        const proceed = window.confirm(
+          `${v.total} documents will be generated.\n${v.warnings} warning(s) detected — documents will render with placeholders for missing fields.\n\nContinue anyway?`,
+        );
+        if (!proceed) throw new Error("Generation cancelled.");
+      }
       return start({ data: { project_id: id, ...(args ?? {}) } });
     },
     onSuccess: () => {
@@ -127,8 +147,9 @@ function ProjectPage() {
 
   async function previewPlan(scopeType: "all" | "department" | "document", targets: string[]) {
     const p = await planFn({ data: { scope: scopeType, targets } });
+    const v = await validateFn({ data: { project_id: id, scope: scopeType, targets } });
     alert(
-      `${p.total} documents will be generated.\nAuto-added via dependencies: ${p.added_by_dependency.length}\n\nCodes:\n${p.codes.join(", ")}`,
+      `${p.total} documents will be generated.\nAuto-added via dependencies: ${p.added_by_dependency.length}\nBlocking issues: ${v.blocking} · Warnings: ${v.warnings}\n\nCodes:\n${p.codes.join(", ")}`,
     );
   }
 
