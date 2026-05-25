@@ -12,6 +12,7 @@ import {
   planGeneration,
   listGeneratedDocuments,
   getDocumentUrl,
+  previewValidation,
 } from "@/lib/qms.functions";
 import { DEPARTMENTS, TEMPLATES, TEMPLATES_BY_CODE, directDependencies } from "@/lib/templates";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -60,6 +61,7 @@ function ProjectPage() {
   const planFn = useServerFn(planGeneration);
   const docsFn = useServerFn(listGeneratedDocuments);
   const docUrlFn = useServerFn(getDocumentUrl);
+  const validateFn = useServerFn(previewValidation);
 
   const projectQ = useQuery({ queryKey: ["project", id], queryFn: () => get({ data: { id } }) });
   const runsQ = useQuery({
