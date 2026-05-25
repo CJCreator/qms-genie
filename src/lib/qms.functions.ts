@@ -2,7 +2,45 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { generateBundle, type ProjectData } from "./generation.server";
-import { TEMPLATES } from "./templates";
+import {
+  TEMPLATES,
+  TEMPLATES_BY_CODE,
+  expandWithDependencies,
+  expandDepartments,
+  directDependencies,
+} from "./templates";
+
+// Plan a generation: returns the resolved code list (with dep closure) for a UI preview.
+export const planGeneration = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (d: { scope: "all" | "department" | "document"; targets?: string[] }) => d,
+  )
+  .handler(async ({ data }) => {
+    const codes = resolveCodes(data.scope, data.targets ?? []);
+    return {
+      codes,
+      total: codes.length,
+      added_by_dependency: codes.filter(
+        (c) => !(data.targets ?? []).includes(c),
+      ),
+    };
+  });
+
+function resolveCodes(
+  scope: "all" | "department" | "document",
+  targets: string[],
+): string[] {
+  if (scope === "all") {
+    return expandWithDependencies(TEMPLATES.map((t) => t.meta.document_code));
+  }
+  if (scope === "department") {
+    return expandDepartments(targets);
+  }
+  // single/multi document
+  return expandWithDependencies(targets.filter((c) => TEMPLATES_BY_CODE[c]));
+}
+
 
 // List user's projects (in their workspaces).
 export const listProjects = createServerFn({ method: "GET" })
@@ -90,7 +128,13 @@ export const listGenerationRuns = createServerFn({ method: "POST" })
 
 export const startGeneration = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { project_id: string }) => d)
+  .inputValidator(
+    (d: {
+      project_id: string;
+      scope?: "all" | "department" | "document";
+      targets?: string[];
+    }) => d,
+  )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
@@ -102,13 +146,21 @@ export const startGeneration = createServerFn({ method: "POST" })
       .single();
     if (pErr || !project) throw new Error(pErr?.message || "Project not found");
 
-    // pick templates by department scope (or all if none chosen)
-    const scope: string[] = (project.department_scope as any[])?.length
-      ? ((project.department_scope as unknown) as string[])
-      : [];
-    const selected = TEMPLATES.filter((t) =>
-      scope.length === 0 ? true : scope.includes(t.meta.department),
-    ).map((t) => t.meta.document_code);
+    // Resolve which documents to generate (with full dependency closure).
+    // - scope=all: every template (default if no scope given and no dept selected)
+    // - scope=department: every doc in the chosen departments + deps
+    // - scope=document: the chosen document codes + deps
+    // If no explicit scope is sent, fall back to the project's department_scope.
+    let scope: "all" | "department" | "document" = data.scope ?? "all";
+    let targets: string[] = data.targets ?? [];
+    if (!data.scope) {
+      const ds = ((project.department_scope as unknown) as string[]) ?? [];
+      if (ds.length) {
+        scope = "department";
+        targets = ds;
+      }
+    }
+    const selected = resolveCodes(scope, targets);
 
     // next version
     const { data: prev } = await supabase
@@ -119,7 +171,6 @@ export const startGeneration = createServerFn({ method: "POST" })
       .limit(1);
     const version = ((prev?.[0] as any)?.version ?? 0) + 1;
 
-    // create run row
     const { data: run, error: rErr } = await supabase
       .from("generation_runs")
       .insert({
@@ -127,7 +178,7 @@ export const startGeneration = createServerFn({ method: "POST" })
         created_by: userId,
         version,
         status: "rendering",
-        progress: { done: 0, total: selected.length },
+        progress: { done: 0, total: selected.length, scope, targets },
       })
       .select("id")
       .single();
@@ -144,17 +195,54 @@ export const startGeneration = createServerFn({ method: "POST" })
         });
       if (upErr) throw new Error(upErr.message);
 
+      // Persist validation findings for the UI tab.
+      if (result.findings.length) {
+        await supabaseAdmin.from("validation_findings").insert(
+          result.findings.map((f) => ({
+            project_id: data.project_id,
+            run_id: run.id,
+            severity: f.severity,
+            document_code: f.document_code,
+            field: f.field ?? null,
+            message: f.message,
+          })),
+        );
+      }
+
+      // Persist per-document records (so the dashboard can show status per code).
+      await supabaseAdmin.from("generated_documents").insert(
+        result.entries.map((e) => ({
+          run_id: run.id,
+          project_id: data.project_id,
+          template_code: e.code,
+          status: "rendered",
+          storage_path: path,
+          content: { name: e.name },
+        })),
+      );
+
       await supabase
         .from("generation_runs")
         .update({
           status: "succeeded",
           finished_at: new Date().toISOString(),
           bundle_path: path,
-          summary: { documents: result.entries.length, codes: result.entries.map((e) => e.code) },
+          summary: {
+            documents: result.entries.length,
+            codes: result.entries.map((e) => e.code),
+            findings: result.findings.length,
+            scope,
+            targets,
+          },
         })
         .eq("id", run.id);
 
-      return { run_id: run.id, documents: result.entries.length, path };
+      return {
+        run_id: run.id,
+        documents: result.entries.length,
+        path,
+        findings: result.findings.length,
+      };
     } catch (e: any) {
       await supabase
         .from("generation_runs")
@@ -167,6 +255,36 @@ export const startGeneration = createServerFn({ method: "POST" })
       throw e;
     }
   });
+
+export const listFindings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { project_id: string }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: rows, error } = await supabase
+      .from("validation_findings")
+      .select("id, severity, document_code, field, message, created_at, run_id")
+      .eq("project_id", data.project_id)
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
+export const listGeneratedDocuments = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { project_id: string }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: rows, error } = await supabase
+      .from("generated_documents")
+      .select("template_code, status, created_at, run_id")
+      .eq("project_id", data.project_id)
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
 
 export const getBundleUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
