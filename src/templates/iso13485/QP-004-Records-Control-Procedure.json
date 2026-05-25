@@ -3,110 +3,86 @@
     "document_code": "QP-004",
     "document_name": "Records Control Procedure",
     "department": "QMS",
-    "iso_clauses": [
-      "4.2.5"
-    ],
+    "iso_clauses": ["4.2.5"],
     "default_prepared_by_role": "QA Manager",
-    "default_approved_by_role": "CEO / Top Management",
+    "default_approved_by_role": "QA Director",
     "retention_period": "Permanent",
-    "applicable_device_types": [
-      "hardware",
-      "software",
-      "hims",
-      "combination"
-    ],
-    "applicable_markets": [
-      "EU",
-      "US",
-      "UK",
-      "global"
-    ]
+    "applicable_device_types": ["hardware", "software", "hims", "combination"],
+    "applicable_markets": ["EU", "US", "UK", "global"]
   },
   "inputs": [
-    {
-      "id": "company_legal_name",
-      "label": "Company Legal Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    },
-    {
-      "id": "device_name_model",
-      "label": "Device Name & Model",
-      "type": "text",
-      "required": true,
-      "source": "device_record"
-    },
-    {
-      "id": "qa_manager_name",
-      "label": "QA Manager Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    }
+    { "id": "company_legal_name", "label": "Company Legal Name", "type": "text", "required": true, "source": "company_profile" }
   ],
   "sections": [
-    {
-      "id": "header",
-      "title": "",
-      "type": "static",
-      "content": "ISO 13485:2016\nRecords Control Procedure\nDocument Code: QP-004\nRevision: {revision_number}"
-    },
     {
       "id": "purpose",
       "title": "1. Purpose",
       "type": "ai_generated",
-      "section_prompt": "Draft a clear, regulatory-compliant purpose statement for the Records Control Procedure document under ISO 13485:2016 for a medical device company.",
-      "editable": true
+      "section_prompt": "State that this procedure controls QMS records per ISO 13485:2016 clause 4.2.5: identification, storage, security, integrity, retrieval, retention and disposition."
     },
     {
       "id": "scope",
       "title": "2. Scope",
-      "type": "variable",
-      "content": "This document establishes the records control procedure for {company_legal_name} and applies to all relevant QMS processes."
+      "type": "ai_generated",
+      "section_prompt": "Define which records are within scope: quality records, design history records, DMR/DHR/DHF (or equivalent), training records, audit records, complaint records, CAPA records, supplier records, calibration records. Reference {ref:QP-003} for controlled documents (which are NOT records)."
     },
     {
-      "id": "responsibilities",
-      "title": "3. Responsibilities",
-      "type": "static",
-      "content": "Prepared by: {default_prepared_by_role}\nApproved by: {default_approved_by_role}"
+      "id": "procedure",
+      "title": "3. Procedure",
+      "type": "clause_block",
+      "clauses": ["4.2.5"],
+      "section_prompt": "Describe identification (record ID, owning process), storage (controlled system with access control), protection (backup, integrity), retrieval (search index), retention (per the matrix below), disposition (secure deletion). Address EU MDR Article 10(8) and 21 CFR 820.180/820.181 retention expectations where the markets selected include EU/US."
     },
     {
-      "id": "approval_block",
-      "title": "",
-      "type": "approval_block"
+      "id": "retention_matrix",
+      "title": "4. Record Retention Matrix",
+      "type": "table_spec",
+      "columns": [
+        { "key": "record_type", "label": "Record Type" },
+        { "key": "owner", "label": "Owner" },
+        { "key": "storage", "label": "Storage System" },
+        { "key": "retention", "label": "Minimum Retention" },
+        { "key": "regulatory_basis", "label": "Regulatory Basis" }
+      ],
+      "ai_rows_prompt": "Produce a retention matrix with at least 12 rows covering: Design History File, Device Master Record, Device History Record (or equivalent), Risk Management File, Complaints, CAPA, Vigilance/MDR reports, Internal Audit, Management Review, Training, Supplier Qualification, Calibration, Software Configuration Records (if applicable). Use realistic retention defaults — for EU MDR Class IIa/IIb/III: at least 10 years after last placed on market (15 for implantable); US 21 CFR 820.180: at least 2 years past commercial distribution or design lifetime, whichever is longer. Cite the regulatory basis briefly per row.",
+      "min_rows": 12
     },
+    {
+      "id": "electronic_records",
+      "title": "5. Electronic Records and Signatures",
+      "type": "ai_generated",
+      "section_prompt": "If the company uses electronic records or e-signatures, summarise controls aligned with 21 CFR Part 11 (US) and Annex 11 (EU GMP analog where relevant): access control, audit trail, time-stamping, training, change control of the e-records system. If purely paper, state that and how originals are protected."
+    },
+    {
+      "id": "disposition",
+      "title": "6. Disposition",
+      "type": "ai_generated",
+      "section_prompt": "Describe disposition at end of retention: secure deletion or destruction, witnessed and recorded; preservation of records still subject to legal hold or open regulatory matter."
+    },
+    { "id": "approval_block", "title": "Approval", "type": "approval_block" },
     {
       "id": "revision_history",
       "title": "Revision History",
-      "type": "table",
-      "table_source": "revision_history"
+      "type": "table_spec",
+      "columns": [
+        { "key": "rev", "label": "Rev" },
+        { "key": "date", "label": "Date" },
+        { "key": "author", "label": "Author" },
+        { "key": "summary", "label": "Change Summary" }
+      ],
+      "rows": [
+        { "rev": "1.0", "date": "{effective_date}", "author": "{qa_manager_name}", "summary": "Initial release." }
+      ]
     }
   ],
   "validation_rules": {
-    "emits": [
-      "qp-004_approval",
-      "role_names"
-    ],
-    "consumes": [
-      "qa_manager_role_name",
-      "company_legal_name"
-    ],
-    "required_sections_for_markets": {
-      "EU": [
-        "scope",
-        "purpose"
-      ],
-      "US": [
-        "scope",
-        "purpose"
-      ]
-    }
+    "emits": ["record_retention_matrix"],
+    "consumes": ["company_legal_name", "target_markets"]
   },
-  "dependencies": [],
+  "dependencies": ["QP-003"],
   "output_config": {
     "page_size": "A4",
-    "header": "{company_legal_name} | QP-004 | Rev {revision_number}",
-    "footer": "CONFIDENTIAL \u2014 Controlled Document | ISO 13485:2016"
+    "header": "{company_legal_name} | QP-004 Records Control | Rev {revision_number}",
+    "footer": "CONFIDENTIAL — Controlled Document | ISO 13485:2016 §4.2.5"
   }
 }
