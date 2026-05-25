@@ -3,119 +3,120 @@
     "document_code": "QP-001",
     "document_name": "Quality Manual",
     "department": "QMS",
-    "iso_clauses": [
-      "4.1",
-      "4.2",
-      "4.3",
-      "5.1",
-      "5.2",
-      "5.3",
-      "5.4",
-      "5.5",
-      "5.6",
-      "8.2.2"
-    ],
+    "iso_clauses": ["4.1", "4.2", "4.3", "5.1", "5.2", "5.3", "5.4", "5.5", "5.6", "8.2.2"],
     "default_prepared_by_role": "QA Manager",
     "default_approved_by_role": "CEO / Top Management",
     "retention_period": "Permanent",
-    "applicable_device_types": [
-      "hardware",
-      "software",
-      "hims",
-      "combination"
-    ],
-    "applicable_markets": [
-      "EU",
-      "US",
-      "UK",
-      "global"
-    ]
+    "applicable_device_types": ["hardware", "software", "hims", "combination"],
+    "applicable_markets": ["EU", "US", "UK", "global"]
   },
   "inputs": [
-    {
-      "id": "company_legal_name",
-      "label": "Company Legal Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    },
-    {
-      "id": "device_name_model",
-      "label": "Device Name & Model",
-      "type": "text",
-      "required": true,
-      "source": "device_record"
-    },
-    {
-      "id": "qa_manager_name",
-      "label": "QA Manager Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    }
+    { "id": "company_legal_name", "label": "Company Legal Name", "type": "text", "required": true, "source": "company_profile" },
+    { "id": "device_name_model", "label": "Device Name & Model", "type": "text", "required": true, "source": "device_record" },
+    { "id": "qa_manager_name", "label": "QA Manager Name", "type": "text", "required": true, "source": "company_profile" }
   ],
   "sections": [
     {
-      "id": "header",
-      "title": "",
-      "type": "static",
-      "content": "ISO 13485:2016\nQuality Manual\nDocument Code: QP-001\nRevision: {revision_number}"
-    },
-    {
-      "id": "purpose",
-      "title": "1. Purpose",
+      "id": "purpose_scope",
+      "title": "1. Purpose and Scope",
       "type": "ai_generated",
-      "section_prompt": "Draft a clear, regulatory-compliant purpose statement for the Quality Manual document under ISO 13485:2016 for a medical device company.",
+      "section_prompt": "Author the Purpose and Scope section of the Quality Manual. State (a) the purpose of this Quality Manual, (b) the scope of the QMS including the products and processes covered, (c) the physical sites and legal entities in scope, (d) any ISO 13485:2016 clauses excluded with justification (typically 7.5.5 sterile, 7.5.7 sterilisation validation, 7.5.9.2 implantable traceability — only exclude where genuinely not applicable to this device), and (e) the target regulatory markets. Be specific to the company and device above.",
       "editable": true
     },
     {
-      "id": "scope",
-      "title": "2. Scope",
-      "type": "variable",
-      "content": "This document establishes the quality manual for {company_legal_name} and applies to all relevant QMS processes."
+      "id": "normative_references",
+      "title": "2. Normative References",
+      "type": "ai_generated",
+      "section_prompt": "List the normative references this QMS conforms to, including ISO 13485:2016, ISO 14971:2019, and where applicable IEC 62304:2006+A1:2015, IEC 62366-1:2015, ISO 14155, 21 CFR Part 820, EU MDR 2017/745, UK MDR 2002 (as amended), MDSAP requirements. Map each reference to the markets selected above.",
+      "editable": true
     },
     {
-      "id": "responsibilities",
-      "title": "3. Responsibilities",
-      "type": "static",
-      "content": "Prepared by: {default_prepared_by_role}\nApproved by: {default_approved_by_role}"
+      "id": "qms_processes",
+      "title": "3. Quality Management System — Processes (Clause 4)",
+      "type": "clause_block",
+      "clauses": ["4.1.1", "4.1.2", "4.1.3", "4.1.4", "4.1.5", "4.1.6", "4.2.1", "4.2.2", "4.2.3", "4.2.4", "4.2.5"],
+      "section_prompt": "Describe how the company establishes, documents, implements and maintains the QMS. Identify the processes needed, their sequence and interaction, criteria and methods to ensure operation and control, monitoring, measurement and analysis, and validation of computer software used in the QMS per 4.1.6. Reference the document control procedure as {ref:QP-003} and records control as {ref:QP-004}."
+    },
+    {
+      "id": "management_responsibility",
+      "title": "4. Management Responsibility (Clause 5)",
+      "type": "clause_block",
+      "clauses": ["5.1", "5.2", "5.3", "5.4.1", "5.4.2", "5.5.1", "5.5.2", "5.5.3", "5.6"],
+      "section_prompt": "Describe top management's commitment, customer focus, the Quality Policy reference ({ref:QP-002}), planning (quality objectives, QMS planning), responsibility/authority and the Management Representative role, internal communication, and Management Review per {ref:QP-005}."
+    },
+    {
+      "id": "resource_management",
+      "title": "5. Resource Management (Clause 6)",
+      "type": "clause_block",
+      "clauses": ["6.1", "6.2", "6.3", "6.4.1", "6.4.2"],
+      "section_prompt": "Summarise provision of resources, human resources (competence, training — see {ref:HR-002} and {ref:HR-003}), infrastructure, work environment and contamination control as relevant to this device class."
+    },
+    {
+      "id": "product_realisation",
+      "title": "6. Product Realisation (Clause 7)",
+      "type": "clause_block",
+      "clauses": ["7.1", "7.2", "7.3", "7.4", "7.5", "7.6"],
+      "section_prompt": "Summarise planning of product realisation, customer-related processes, design and development controls, purchasing, production and service provision, and control of monitoring and measuring equipment. Reference design controls procedure ({ref:RD-001}), risk management file ({ref:RD-007}), supplier evaluation ({ref:SC-001}), and calibration ({ref:QC-005})."
+    },
+    {
+      "id": "measurement_improvement",
+      "title": "7. Measurement, Analysis and Improvement (Clause 8)",
+      "type": "clause_block",
+      "clauses": ["8.1", "8.2.1", "8.2.2", "8.2.3", "8.2.4", "8.2.5", "8.2.6", "8.3", "8.4", "8.5.1", "8.5.2", "8.5.3"],
+      "section_prompt": "Describe feedback ({ref:CA-003}), complaint handling, regulatory reporting ({ref:CA-005}), internal audit ({ref:AU-001}), monitoring of processes and product, control of nonconforming product ({ref:CA-007}), analysis of data, and CAPA ({ref:CA-001}). Be procedural, not aspirational."
+    },
+    {
+      "id": "process_interaction",
+      "title": "8. Process Interaction Map",
+      "type": "table_spec",
+      "columns": [
+        { "key": "process", "label": "Process" },
+        { "key": "owner", "label": "Owner / Role" },
+        { "key": "inputs", "label": "Key Inputs" },
+        { "key": "outputs", "label": "Key Outputs / Records" },
+        { "key": "kpi", "label": "KPI / Metric" }
+      ],
+      "ai_rows_prompt": "Produce a process interaction map covering: Management Review, Design & Development, Risk Management, Production, Post-market Surveillance, CAPA, Internal Audit, Supplier Management, Training, Document Control. Tailor owners and KPIs to the company and device above.",
+      "min_rows": 10
+    },
+    {
+      "id": "exclusions_justification",
+      "title": "9. Permissible Exclusions and Non-application Justification",
+      "type": "ai_generated",
+      "section_prompt": "For ISO 13485:2016 clauses 6.4.2 (contamination control), 7.3 (design and development), 7.5.2 (cleanliness), 7.5.3 (installation), 7.5.4 (servicing), 7.5.5 (sterile devices), 7.5.6 (process validation), 7.5.7 (sterilisation validation), 7.5.9.2 (implantable traceability), 7.5.11 (preservation), explicitly state APPLICABLE or NOT APPLICABLE with one-sentence justification per clause for the device above. Do not invent applicability — base on intended use and classification."
     },
     {
       "id": "approval_block",
-      "title": "",
+      "title": "Approval",
       "type": "approval_block"
     },
     {
       "id": "revision_history",
       "title": "Revision History",
-      "type": "table",
-      "table_source": "revision_history"
+      "type": "table_spec",
+      "columns": [
+        { "key": "rev", "label": "Rev" },
+        { "key": "date", "label": "Date" },
+        { "key": "author", "label": "Author" },
+        { "key": "summary", "label": "Change Summary" }
+      ],
+      "rows": [
+        { "rev": "1.0", "date": "{effective_date}", "author": "{qa_manager_name}", "summary": "Initial release." }
+      ]
     }
   ],
   "validation_rules": {
-    "emits": [
-      "qp-001_approval",
-      "role_names"
-    ],
-    "consumes": [
-      "qa_manager_role_name",
-      "company_legal_name"
-    ],
+    "emits": ["quality_manual_published", "scope_statement", "exclusion_list"],
+    "consumes": ["company_legal_name", "qa_manager_name", "qa_director_name", "target_markets", "device_classification"],
     "required_sections_for_markets": {
-      "EU": [
-        "scope",
-        "purpose"
-      ],
-      "US": [
-        "scope",
-        "purpose"
-      ]
+      "EU": ["purpose_scope", "normative_references", "qms_processes"],
+      "US": ["purpose_scope", "normative_references", "qms_processes"]
     }
   },
-  "dependencies": [],
+  "dependencies": ["QP-002", "QP-003", "QP-004", "QP-005"],
   "output_config": {
     "page_size": "A4",
-    "header": "{company_legal_name} | QP-001 | Rev {revision_number}",
-    "footer": "CONFIDENTIAL \u2014 Controlled Document | ISO 13485:2016"
+    "header": "{company_legal_name} | QP-001 Quality Manual | Rev {revision_number}",
+    "footer": "CONFIDENTIAL — Controlled Document | ISO 13485:2016"
   }
 }
