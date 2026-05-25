@@ -12,7 +12,23 @@ export type TemplateSection =
       editable?: boolean;
     }
   | { id: string; title: string; type: "table"; table_source: string }
-  | { id: string; title: string; type: "approval_block" };
+  | { id: string; title: string; type: "approval_block" }
+  | {
+      id: string;
+      title: string;
+      type: "clause_block";
+      clauses: string[];
+      section_prompt: string;
+    }
+  | {
+      id: string;
+      title: string;
+      type: "table_spec";
+      columns: { key: string; label: string; width?: number }[];
+      rows?: Record<string, string>[]; // static rows
+      ai_rows_prompt?: string; // if set, AI fills rows as JSON
+      min_rows?: number;
+    };
 
 export interface TemplateInput {
   id: string;
