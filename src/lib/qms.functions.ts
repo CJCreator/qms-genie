@@ -1,7 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { generateBundle, type ProjectData } from "./generation.server";
+import {
+  generateBundle,
+  PreRenderValidationError,
+  validateBeforeRender,
+  type ProjectData,
+} from "./generation.server";
 import {
   TEMPLATES,
   TEMPLATES_BY_CODE,
