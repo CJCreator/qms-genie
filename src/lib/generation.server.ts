@@ -440,6 +440,6 @@ before release. Apply approvals and signatures per your controlled-document proc
   );
 
   const zipBuf = await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" });
-  return { zip: zipBuf, entries: entries.map((e) => ({ code: e.code, name: e.name })), findings };
+  return { zip: zipBuf, entries, findings };
 }
 
