@@ -3,110 +3,79 @@
     "document_code": "RA-005",
     "document_name": "Post-Market Surveillance Plan",
     "department": "RA",
-    "iso_clauses": [
-      "8.2.1"
-    ],
-    "default_prepared_by_role": "RA Lead",
+    "iso_clauses": ["8.2.1"],
+    "default_prepared_by_role": "Regulatory Affairs Manager",
     "default_approved_by_role": "QA Director",
     "retention_period": "Life of device + 10 years",
-    "applicable_device_types": [
-      "hardware",
-      "software",
-      "hims",
-      "combination"
-    ],
-    "applicable_markets": [
-      "EU",
-      "US",
-      "UK",
-      "global"
-    ]
+    "applicable_device_types": ["hardware", "software", "hims", "combination"],
+    "applicable_markets": ["EU", "US", "UK", "global"]
   },
   "inputs": [
-    {
-      "id": "company_legal_name",
-      "label": "Company Legal Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    },
-    {
-      "id": "device_name_model",
-      "label": "Device Name & Model",
-      "type": "text",
-      "required": true,
-      "source": "device_record"
-    },
-    {
-      "id": "qa_manager_name",
-      "label": "QA Manager Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    }
+    { "id": "company_legal_name", "label": "Company Legal Name", "type": "text", "required": true, "source": "company_profile" },
+    { "id": "device_name_model", "label": "Device Name & Model", "type": "text", "required": true, "source": "device_record" }
   ],
   "sections": [
+    { "id": "header", "title": "", "type": "static", "content": "Post-Market Surveillance Plan (EU MDR Article 84 / Annex III)\nDocument Code: RA-005\nRevision: {revision_number}\nDevice: {device_name_model}" },
+    { "id": "purpose", "title": "1. Purpose", "type": "ai_generated", "section_prompt": "State that this PMS Plan describes the systematic collection and analysis of real-world data for {device_name_model} per EU MDR Article 84 and ISO 13485:2016 \u00a78.2.1, feeding risk file {ref:RD-007}, CAPA {ref:CA-001}, vigilance {ref:CA-005}, and PSUR/PMCF {ref:RA-006}." },
     {
-      "id": "header",
-      "title": "",
-      "type": "static",
-      "content": "ISO 13485:2016\nPost-Market Surveillance Plan\nDocument Code: RA-005\nRevision: {revision_number}"
+      "id": "objectives",
+      "title": "2. PMS Objectives",
+      "type": "clause_block",
+      "clauses": [
+        "2.1 Confirm benefit-risk remains acceptable in real-world use",
+        "2.2 Detect emerging risks and previously unknown side effects",
+        "2.3 Identify trends in complaints, malfunctions, and use errors",
+        "2.4 Verify continued conformity with GSPR and applicable standards",
+        "2.5 Identify need for preventive, corrective or FSCA actions"
+      ],
+      "section_prompt": "For each objective, briefly describe the method used for {device_name_model}."
     },
     {
-      "id": "purpose",
-      "title": "1. Purpose",
+      "id": "sources",
+      "title": "3. Data Sources & Collection Methods",
+      "type": "table_spec",
+      "columns": [
+        { "key": "source", "label": "Data Source", "width": 2400 },
+        { "key": "method", "label": "Collection Method", "width": 2800 },
+        { "key": "frequency", "label": "Frequency", "width": 1800 },
+        { "key": "owner", "label": "Owner", "width": 1800 },
+        { "key": "indicator", "label": "Indicator / KPI", "width": 1760 }
+      ],
+      "ai_rows_prompt": "Generate 8\u201312 sources: complaints ({ref:CA-004}), service/repair records, returns analysis, user surveys, sales/usage data, literature review, regulatory database scan (FDA MAUDE, Eudamed, MHRA), social media, similar-device data, PMCF studies, internal audit findings. Return JSON array."
+    },
+    {
+      "id": "analysis",
+      "title": "4. Analysis Methods & Thresholds",
       "type": "ai_generated",
-      "section_prompt": "Draft a clear, regulatory-compliant purpose statement for the Post-Market Surveillance Plan document under ISO 13485:2016 for a medical device company.",
-      "editable": true
+      "section_prompt": "Describe statistical and trend-analysis methods, signal-detection thresholds (e.g. complaint rate > X per 1000 units triggers investigation), and escalation paths to CAPA ({ref:CA-001}) and risk re-evaluation ({ref:RD-007})."
     },
     {
-      "id": "scope",
-      "title": "2. Scope",
-      "type": "variable",
-      "content": "This document establishes the post-market surveillance plan for {company_legal_name} and applies to all relevant QMS processes."
+      "id": "reporting",
+      "title": "5. Reporting Cadence",
+      "type": "table_spec",
+      "columns": [
+        { "key": "report", "label": "Report", "width": 2400 },
+        { "key": "audience", "label": "Audience", "width": 2400 },
+        { "key": "frequency", "label": "Frequency", "width": 2000 },
+        { "key": "reference", "label": "Reference", "width": 3760 }
+      ],
+      "ai_rows_prompt": "Include: PMS Trend Report (internal monthly), PSUR (annual for class IIb/III per EU MDR Article 86 \u2014 {ref:RA-006}), PMCF Report, Management Review input ({ref:QP-005}), Vigilance reports as triggered ({ref:CA-005}). Return JSON array."
     },
-    {
-      "id": "responsibilities",
-      "title": "3. Responsibilities",
-      "type": "static",
-      "content": "Prepared by: {default_prepared_by_role}\nApproved by: {default_approved_by_role}"
-    },
-    {
-      "id": "approval_block",
-      "title": "",
-      "type": "approval_block"
-    },
-    {
-      "id": "revision_history",
-      "title": "Revision History",
-      "type": "table",
-      "table_source": "revision_history"
-    }
+    { "id": "approval_block", "title": "", "type": "approval_block" },
+    { "id": "revision_history", "title": "Revision History", "type": "table", "table_source": "revision_history" }
   ],
   "validation_rules": {
-    "emits": [
-      "ra-005_approval",
-      "role_names"
-    ],
-    "consumes": [
-      "qa_manager_role_name",
-      "company_legal_name"
-    ],
+    "emits": ["pms_plan_baseline"],
+    "consumes": ["device_name_model"],
     "required_sections_for_markets": {
-      "EU": [
-        "scope",
-        "purpose"
-      ],
-      "US": [
-        "scope",
-        "purpose"
-      ]
+      "EU": ["objectives", "sources", "reporting"],
+      "US": ["sources", "analysis"]
     }
   },
-  "dependencies": [],
+  "dependencies": ["RA-001", "QP-006"],
   "output_config": {
     "page_size": "A4",
-    "header": "{company_legal_name} | RA-005 | Rev {revision_number}",
-    "footer": "CONFIDENTIAL \u2014 Controlled Document | ISO 13485:2016"
+    "header": "{company_legal_name} | RA-005 PMS Plan | {device_name_model} | Rev {revision_number}",
+    "footer": "CONFIDENTIAL \u2014 Controlled Document | EU MDR Art. 84"
   }
 }

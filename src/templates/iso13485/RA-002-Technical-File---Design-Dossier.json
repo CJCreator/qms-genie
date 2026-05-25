@@ -3,111 +3,73 @@
     "document_code": "RA-002",
     "document_name": "Technical File / Design Dossier",
     "department": "RA",
-    "iso_clauses": [
-      "4.1",
-      "7.3"
-    ],
-    "default_prepared_by_role": "RA Lead",
+    "iso_clauses": ["4.2.3"],
+    "default_prepared_by_role": "Regulatory Affairs Manager",
     "default_approved_by_role": "QA Director",
     "retention_period": "Life of device + 10 years",
-    "applicable_device_types": [
-      "hardware",
-      "software",
-      "hims",
-      "combination"
-    ],
-    "applicable_markets": [
-      "EU",
-      "US",
-      "UK",
-      "global"
-    ]
+    "applicable_device_types": ["hardware", "software", "hims", "combination"],
+    "applicable_markets": ["EU", "US", "UK", "global"]
   },
   "inputs": [
-    {
-      "id": "company_legal_name",
-      "label": "Company Legal Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    },
-    {
-      "id": "device_name_model",
-      "label": "Device Name & Model",
-      "type": "text",
-      "required": true,
-      "source": "device_record"
-    },
-    {
-      "id": "qa_manager_name",
-      "label": "QA Manager Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    }
+    { "id": "company_legal_name", "label": "Company Legal Name", "type": "text", "required": true, "source": "company_profile" },
+    { "id": "device_name_model", "label": "Device Name & Model", "type": "text", "required": true, "source": "device_record" }
   ],
   "sections": [
+    { "id": "header", "title": "", "type": "static", "content": "Technical Documentation per EU MDR Annex II & III\nDocument Code: RA-002\nRevision: {revision_number}\nDevice: {device_name_model}" },
+    { "id": "purpose", "title": "1. Purpose", "type": "ai_generated", "section_prompt": "State that this Technical File assembles the documentation required by EU MDR 2017/745 Annexes II and III for {device_name_model}, and serves as the foundation for FDA submissions and other market dossiers per strategy {ref:RA-001}." },
     {
-      "id": "header",
-      "title": "",
-      "type": "static",
-      "content": "ISO 13485:2016\nTechnical File / Design Dossier\nDocument Code: RA-002\nRevision: {revision_number}"
+      "id": "annex_ii",
+      "title": "2. EU MDR Annex II Index",
+      "type": "table_spec",
+      "columns": [
+        { "key": "section", "label": "Annex II Section", "width": 2200 },
+        { "key": "topic", "label": "Topic", "width": 3000 },
+        { "key": "internal_doc", "label": "Internal Document(s)", "width": 3000 },
+        { "key": "status", "label": "Status", "width": 1760 }
+      ],
+      "ai_rows_prompt": "Generate index rows for EU MDR Annex II sections 1\u20136: 1. Device description and specification incl variants/accessories; 2. Information to be supplied by the manufacturer (labels, IFU); 3. Design and manufacturing information; 4. General Safety and Performance Requirements (GSPR) checklist; 5. Benefit-risk analysis and risk management ({ref:RD-007}); 6. Product verification and validation ({ref:RD-005}, {ref:RD-006}), clinical evaluation, PMS plan ({ref:RA-005}), PSUR ({ref:RA-006}). Status one of Complete|In progress|Not started. Return JSON array."
     },
     {
-      "id": "purpose",
-      "title": "1. Purpose",
+      "id": "annex_iii",
+      "title": "3. EU MDR Annex III \u2014 PMS Documentation",
       "type": "ai_generated",
-      "section_prompt": "Draft a clear, regulatory-compliant purpose statement for the Technical File / Design Dossier document under ISO 13485:2016 for a medical device company.",
-      "editable": true
+      "section_prompt": "Summarise that Annex III content (PMS plan, PSUR, PMCF plan and report, trend reports) is maintained in {ref:RA-005} and {ref:RA-006}, kept current throughout the product lifecycle."
     },
     {
-      "id": "scope",
-      "title": "2. Scope",
-      "type": "variable",
-      "content": "This document establishes the technical file / design dossier for {company_legal_name} and applies to all relevant QMS processes."
+      "id": "gspr_checklist",
+      "title": "4. GSPR Checklist (Annex I)",
+      "type": "table_spec",
+      "columns": [
+        { "key": "gspr", "label": "GSPR #", "width": 900 },
+        { "key": "requirement", "label": "Requirement Summary", "width": 4000 },
+        { "key": "applies", "label": "Applies?", "width": 1100 },
+        { "key": "evidence", "label": "Evidence Reference", "width": 2700 },
+        { "key": "standard", "label": "Standard Used", "width": 1860 }
+      ],
+      "ai_rows_prompt": "Generate 14\u201318 representative GSPR entries from EU MDR Annex I (Chapters I General, II Design & Manufacture, III Information). Apply Y/N/NA with rationale in evidence column citing internal docs ({ref:RD-002}, {ref:RD-005}, {ref:RD-007}, {ref:MF-001}, {ref:SW-009}). Standard cites e.g. ISO 14971, IEC 60601-1, IEC 62366-1, IEC 62304, ISO 10993-1, ISO 11607. Return JSON array.",
+      "min_rows": 14
     },
     {
-      "id": "responsibilities",
-      "title": "3. Responsibilities",
-      "type": "static",
-      "content": "Prepared by: {default_prepared_by_role}\nApproved by: {default_approved_by_role}"
+      "id": "fda_mapping",
+      "title": "5. FDA 510(k) / De Novo Cross-Mapping",
+      "type": "ai_generated",
+      "section_prompt": "Describe how this technical file maps to FDA submission sections (eSTAR / 510(k) format): device description, substantial equivalence, performance testing, biocompatibility, software, cybersecurity, labelling. Reference document codes used."
     },
-    {
-      "id": "approval_block",
-      "title": "",
-      "type": "approval_block"
-    },
-    {
-      "id": "revision_history",
-      "title": "Revision History",
-      "type": "table",
-      "table_source": "revision_history"
-    }
+    { "id": "approval_block", "title": "", "type": "approval_block" },
+    { "id": "revision_history", "title": "Revision History", "type": "table", "table_source": "revision_history" }
   ],
   "validation_rules": {
-    "emits": [
-      "ra-002_approval",
-      "role_names"
-    ],
-    "consumes": [
-      "qa_manager_role_name",
-      "company_legal_name"
-    ],
+    "emits": ["technical_file_index"],
+    "consumes": ["regulatory_strategy_baseline"],
     "required_sections_for_markets": {
-      "EU": [
-        "scope",
-        "purpose"
-      ],
-      "US": [
-        "scope",
-        "purpose"
-      ]
+      "EU": ["annex_ii", "gspr_checklist"],
+      "US": ["fda_mapping"]
     }
   },
-  "dependencies": [],
+  "dependencies": ["RA-001"],
   "output_config": {
     "page_size": "A4",
-    "header": "{company_legal_name} | RA-002 | Rev {revision_number}",
-    "footer": "CONFIDENTIAL \u2014 Controlled Document | ISO 13485:2016"
+    "header": "{company_legal_name} | RA-002 Technical File | {device_name_model} | Rev {revision_number}",
+    "footer": "CONFIDENTIAL \u2014 Controlled Document | EU MDR Annex II/III"
   }
 }
