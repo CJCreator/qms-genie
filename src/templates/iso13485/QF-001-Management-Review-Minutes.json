@@ -3,110 +3,69 @@
     "document_code": "QF-001",
     "document_name": "Management Review Minutes",
     "department": "QMS",
-    "iso_clauses": [
-      "5.6"
-    ],
-    "default_prepared_by_role": "QA Manager",
+    "iso_clauses": ["5.6.1", "5.6.2", "5.6.3"],
+    "default_prepared_by_role": "Management Representative",
     "default_approved_by_role": "CEO / Top Management",
     "retention_period": "Permanent",
-    "applicable_device_types": [
-      "hardware",
-      "software",
-      "hims",
-      "combination"
-    ],
-    "applicable_markets": [
-      "EU",
-      "US",
-      "UK",
-      "global"
-    ]
+    "applicable_device_types": ["hardware", "software", "hims", "combination"],
+    "applicable_markets": ["EU", "US", "UK", "global"]
   },
   "inputs": [
-    {
-      "id": "company_legal_name",
-      "label": "Company Legal Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    },
-    {
-      "id": "device_name_model",
-      "label": "Device Name & Model",
-      "type": "text",
-      "required": true,
-      "source": "device_record"
-    },
-    {
-      "id": "qa_manager_name",
-      "label": "QA Manager Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    }
+    { "id": "company_legal_name", "label": "Company Legal Name", "type": "text", "required": true, "source": "company_profile" }
   ],
   "sections": [
-    {
-      "id": "header",
-      "title": "",
-      "type": "static",
-      "content": "ISO 13485:2016\nManagement Review Minutes\nDocument Code: QF-001\nRevision: {revision_number}"
+    { "id": "meeting_meta", "title": "1. Meeting Details",
+      "type": "table_spec",
+      "columns": [{ "key": "field", "label": "Field" }, { "key": "value", "label": "Value" }],
+      "rows": [
+        { "field": "Date", "value": "{effective_date}" },
+        { "field": "Chair", "value": "{qa_director_name}" },
+        { "field": "Minutes by", "value": "{management_representative}" },
+        { "field": "Attendees", "value": "[populate]" },
+        { "field": "Quorum met", "value": "Yes / No" }
+      ]
     },
-    {
-      "id": "purpose",
-      "title": "1. Purpose",
+    { "id": "inputs_review", "title": "2. Review of Inputs (per QP-005)",
+      "type": "table_spec",
+      "columns": [
+        { "key": "input", "label": "Input Topic" },
+        { "key": "summary", "label": "Summary / Data" },
+        { "key": "discussion", "label": "Discussion" },
+        { "key": "decision", "label": "Decision" }
+      ],
+      "ai_rows_prompt": "Produce illustrative rows for each required input per ISO 13485 §5.6.2 (feedback, complaints, regulatory reports, audit results, process monitoring, product monitoring, CAPA status, follow-ups, changes, improvements, new/revised regulatory requirements). For each, give a brief data summary appropriate to a company of this stage, a one-sentence discussion, and a decision. Reference {ref:QP-005}.",
+      "min_rows": 11
+    },
+    { "id": "outputs_actions", "title": "3. Outputs and Action Register",
+      "type": "table_spec",
+      "columns": [
+        { "key": "id", "label": "Action ID" },
+        { "key": "action", "label": "Action" },
+        { "key": "owner", "label": "Owner" },
+        { "key": "due", "label": "Due Date" },
+        { "key": "linked_capa", "label": "Linked CAPA" }
+      ],
+      "ai_rows_prompt": "Generate 4–6 plausible follow-up actions linked to the discussion rows above. Use CAPA IDs of the form CAPA-YYYY-### where corrective action is needed and reference {ref:CA-001}.",
+      "min_rows": 4
+    },
+    { "id": "conclusion", "title": "4. Conclusion on QMS Suitability, Adequacy and Effectiveness",
       "type": "ai_generated",
-      "section_prompt": "Draft a clear, regulatory-compliant purpose statement for the Management Review Minutes document under ISO 13485:2016 for a medical device company.",
-      "editable": true
-    },
-    {
-      "id": "scope",
-      "title": "2. Scope",
-      "type": "variable",
-      "content": "This document establishes the management review minutes for {company_legal_name} and applies to all relevant QMS processes."
-    },
-    {
-      "id": "responsibilities",
-      "title": "3. Responsibilities",
-      "type": "static",
-      "content": "Prepared by: {default_prepared_by_role}\nApproved by: {default_approved_by_role}"
-    },
-    {
-      "id": "approval_block",
-      "title": "",
-      "type": "approval_block"
-    },
-    {
-      "id": "revision_history",
-      "title": "Revision History",
-      "type": "table",
-      "table_source": "revision_history"
+      "section_prompt": "One short paragraph from the chair stating whether the QMS remains suitable, adequate and effective, with justification based on inputs reviewed." },
+    { "id": "approval_block", "title": "Approval", "type": "approval_block" },
+    { "id": "revision_history", "title": "Revision History",
+      "type": "table_spec",
+      "columns": [
+        { "key": "rev", "label": "Rev" }, { "key": "date", "label": "Date" },
+        { "key": "author", "label": "Author" }, { "key": "summary", "label": "Change Summary" }
+      ],
+      "rows": [{ "rev": "1.0", "date": "{effective_date}", "author": "{qa_manager_name}", "summary": "Initial issue." }]
     }
   ],
-  "validation_rules": {
-    "emits": [
-      "qf-001_approval",
-      "role_names"
-    ],
-    "consumes": [
-      "qa_manager_role_name",
-      "company_legal_name"
-    ],
-    "required_sections_for_markets": {
-      "EU": [
-        "scope",
-        "purpose"
-      ],
-      "US": [
-        "scope",
-        "purpose"
-      ]
-    }
-  },
-  "dependencies": [],
+  "validation_rules": { "emits": ["mgmt_review_record"], "consumes": ["qa_director_name", "management_representative"] },
+  "dependencies": ["QP-005", "CA-001"],
   "output_config": {
     "page_size": "A4",
-    "header": "{company_legal_name} | QF-001 | Rev {revision_number}",
-    "footer": "CONFIDENTIAL \u2014 Controlled Document | ISO 13485:2016"
+    "header": "{company_legal_name} | QF-001 Management Review Minutes | Rev {revision_number}",
+    "footer": "CONFIDENTIAL — Controlled Record | ISO 13485:2016 §5.6"
   }
 }
