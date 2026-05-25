@@ -58,6 +58,8 @@ function ProjectPage() {
   const bundleUrl = useServerFn(getBundleUrl);
   const findingsFn = useServerFn(listFindings);
   const planFn = useServerFn(planGeneration);
+  const docsFn = useServerFn(listGeneratedDocuments);
+  const docUrlFn = useServerFn(getDocumentUrl);
 
   const projectQ = useQuery({ queryKey: ["project", id], queryFn: () => get({ data: { id } }) });
   const runsQ = useQuery({
@@ -68,6 +70,11 @@ function ProjectPage() {
   const findingsQ = useQuery({
     queryKey: ["findings", id],
     queryFn: () => findingsFn({ data: { project_id: id } }),
+    refetchInterval: 6000,
+  });
+  const docsQ = useQuery({
+    queryKey: ["docs", id],
+    queryFn: () => docsFn({ data: { project_id: id } }),
     refetchInterval: 6000,
   });
 
