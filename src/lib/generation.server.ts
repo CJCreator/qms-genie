@@ -297,7 +297,10 @@ function buildDocx(
     }),
   );
 
-  for (const { section, text } of rendered) {
+  const cellBorder = { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" };
+  const cellBorders = { top: cellBorder, bottom: cellBorder, left: cellBorder, right: cellBorder };
+
+  for (const { section, text, payload } of rendered) {
     if (section.title) {
       children.push(
         new Paragraph({
@@ -315,12 +318,7 @@ function buildDocx(
               new TableCell({
                 width: { size: 9360, type: WidthType.DXA },
                 margins: { top: 80, bottom: 80, left: 120, right: 120 },
-                borders: {
-                  top: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" },
-                  bottom: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" },
-                  left: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" },
-                  right: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" },
-                },
+                borders: cellBorders,
                 children: [new Paragraph({ children: [new TextRun(line)] })],
               }),
             ],
@@ -333,6 +331,46 @@ function buildDocx(
           rows,
         }),
       );
+    } else if (section.type === "table_spec") {
+      const cols = section.columns;
+      const totalW = 9360;
+      const baseW = Math.floor(totalW / cols.length);
+      const colWidths = cols.map((_, i) => (i === cols.length - 1 ? totalW - baseW * (cols.length - 1) : baseW));
+      const headerRow = new TableRow({
+        tableHeader: true,
+        children: cols.map((c, i) => new TableCell({
+          width: { size: colWidths[i], type: WidthType.DXA },
+          margins: { top: 80, bottom: 80, left: 120, right: 120 },
+          borders: cellBorders,
+          shading: { fill: "EEF2F7", type: ShadingType.CLEAR, color: "auto" },
+          children: [new Paragraph({ children: [new TextRun({ text: c.label, bold: true, size: 20 })] })],
+        })),
+      });
+      const dataRows: TableRow[] = ((payload?.rows ?? []) as Record<string, string>[]).map(
+        (r) => new TableRow({
+          children: cols.map((c, i) => new TableCell({
+            width: { size: colWidths[i], type: WidthType.DXA },
+            margins: { top: 80, bottom: 80, left: 120, right: 120 },
+            borders: cellBorders,
+            children: [new Paragraph({ children: [new TextRun({ text: String(r[c.key] ?? ""), size: 20 })] })],
+          })),
+        }),
+      );
+      if (!dataRows.length) {
+        dataRows.push(new TableRow({
+          children: cols.map((_, i) => new TableCell({
+            width: { size: colWidths[i], type: WidthType.DXA },
+            margins: { top: 80, bottom: 80, left: 120, right: 120 },
+            borders: cellBorders,
+            children: [new Paragraph({ children: [new TextRun({ text: "—", italics: true, size: 20, color: "888888" })] })],
+          })),
+        }));
+      }
+      children.push(new Table({
+        width: { size: totalW, type: WidthType.DXA },
+        columnWidths: colWidths,
+        rows: [headerRow, ...dataRows],
+      }));
     } else {
       for (const line of text.split("\n")) {
         children.push(
