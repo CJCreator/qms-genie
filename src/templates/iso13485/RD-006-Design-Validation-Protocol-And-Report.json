@@ -3,110 +3,74 @@
     "document_code": "RD-006",
     "document_name": "Design Validation Protocol & Report",
     "department": "RD",
-    "iso_clauses": [
-      "7.3.6"
-    ],
-    "default_prepared_by_role": "RD Lead",
+    "iso_clauses": ["7.3.7"],
+    "default_prepared_by_role": "Clinical / RD Validation Lead",
     "default_approved_by_role": "QA Director",
     "retention_period": "Life of device + 10 years",
-    "applicable_device_types": [
-      "hardware",
-      "software",
-      "hims",
-      "combination"
-    ],
-    "applicable_markets": [
-      "EU",
-      "US",
-      "UK",
-      "global"
-    ]
+    "applicable_device_types": ["hardware", "software", "hims", "combination"],
+    "applicable_markets": ["EU", "US", "UK", "global"]
   },
   "inputs": [
-    {
-      "id": "company_legal_name",
-      "label": "Company Legal Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    },
-    {
-      "id": "device_name_model",
-      "label": "Device Name & Model",
-      "type": "text",
-      "required": true,
-      "source": "device_record"
-    },
-    {
-      "id": "qa_manager_name",
-      "label": "QA Manager Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    }
+    { "id": "company_legal_name", "label": "Company Legal Name", "type": "text", "required": true, "source": "company_profile" },
+    { "id": "device_name_model", "label": "Device Name & Model", "type": "text", "required": true, "source": "device_record" },
+    { "id": "intended_use", "label": "Intended Use", "type": "text", "required": true, "source": "device_record" },
+    { "id": "target_users", "label": "Target Users", "type": "text", "required": true, "source": "device_record" }
   ],
   "sections": [
+    { "id": "header", "title": "", "type": "static", "content": "ISO 13485:2016 \u00a77.3.7 \u2014 Design Validation Protocol & Report\nDocument Code: RD-006\nRevision: {revision_number}\nDevice: {device_name_model}" },
+    { "id": "purpose", "title": "1. Purpose", "type": "ai_generated", "section_prompt": "State that this document validates that {device_name_model} meets the defined user needs and intended use ({intended_use}) under actual or simulated use conditions, per ISO 13485:2016 \u00a77.3.7. It complements verification ({ref:RD-005}) and is governed by the Design & Development Plan {ref:RD-001}." },
+    { "id": "scope", "title": "2. Scope", "type": "variable", "content": "Applies to validation of {device_name_model} prior to commercial release. Target users: {target_users}. Validation is performed on initial production units or equivalent." },
     {
-      "id": "header",
-      "title": "",
-      "type": "static",
-      "content": "ISO 13485:2016\nDesign Validation Protocol & Report\nDocument Code: RD-006\nRevision: {revision_number}"
+      "id": "validation_approach",
+      "title": "3. Validation Approach (ISO 13485 \u00a77.3.7)",
+      "type": "clause_block",
+      "clauses": [
+        "3.1 Validation on initial production units, batches or equivalents",
+        "3.2 Performed under defined operating conditions and on the intended user population",
+        "3.3 Clinical evaluation / clinical investigation when required (EU MDR Annex XIV / 21 CFR 812)",
+        "3.4 Usability validation per IEC 62366-1 with representative users",
+        "3.5 Software validation per IEC 62304 / FDA Software Guidance where applicable"
+      ],
+      "section_prompt": "For each clause, describe in 2\u20133 sentences how {company_legal_name} executes this for {device_name_model}. Be concrete about sample size justification, user demographics, and environment."
     },
     {
-      "id": "purpose",
-      "title": "1. Purpose",
+      "id": "validation_matrix",
+      "title": "4. Validation Activities Matrix",
+      "type": "table_spec",
+      "columns": [
+        { "key": "act_id", "label": "Activity ID", "width": 1100 },
+        { "key": "user_need", "label": "User Need / Use Scenario", "width": 2900 },
+        { "key": "method", "label": "Method", "width": 1700 },
+        { "key": "acceptance", "label": "Acceptance Criterion", "width": 2000 },
+        { "key": "result", "label": "Result", "width": 900 },
+        { "key": "evidence_ref", "label": "Evidence Ref", "width": 760 }
+      ],
+      "ai_rows_prompt": "Generate 8\u201312 validation activities for {device_name_model} addressing user needs and use scenarios for {target_users}. Mix methods: summative usability study, simulated-use, clinical investigation, field trial, expert review. Acceptance must be quantitative where possible (e.g. \u22650.85 task success, no use error of severity 4+). Return JSON array."
+    },
+    {
+      "id": "clinical_eval",
+      "title": "5. Clinical Evaluation Linkage",
       "type": "ai_generated",
-      "section_prompt": "Draft a clear, regulatory-compliant purpose statement for the Design Validation Protocol & Report document under ISO 13485:2016 for a medical device company.",
-      "editable": true
+      "section_prompt": "Describe how clinical evidence supporting validation is captured in the Clinical Evaluation Report (or 510(k) clinical summary as applicable) and how post-market clinical follow-up ({ref:RA-005}, {ref:RA-006}) maintains validation over the product lifecycle. Tailor to {device_name_model}."
     },
     {
-      "id": "scope",
-      "title": "2. Scope",
-      "type": "variable",
-      "content": "This document establishes the design validation protocol & report for {company_legal_name} and applies to all relevant QMS processes."
+      "id": "conclusion",
+      "title": "6. Validation Conclusion",
+      "type": "ai_generated",
+      "section_prompt": "Provide a release-decision conclusion summarising validation outcomes for {device_name_model}, residual risk acceptability (linked to {ref:RD-007}), and authorisation for design transfer ({ref:RD-008}) and market release."
     },
-    {
-      "id": "responsibilities",
-      "title": "3. Responsibilities",
-      "type": "static",
-      "content": "Prepared by: {default_prepared_by_role}\nApproved by: {default_approved_by_role}"
-    },
-    {
-      "id": "approval_block",
-      "title": "",
-      "type": "approval_block"
-    },
-    {
-      "id": "revision_history",
-      "title": "Revision History",
-      "type": "table",
-      "table_source": "revision_history"
-    }
+    { "id": "approval_block", "title": "", "type": "approval_block" },
+    { "id": "revision_history", "title": "Revision History", "type": "table", "table_source": "revision_history" }
   ],
   "validation_rules": {
-    "emits": [
-      "rd-006_approval",
-      "role_names"
-    ],
-    "consumes": [
-      "qa_manager_role_name",
-      "company_legal_name"
-    ],
-    "required_sections_for_markets": {
-      "EU": [
-        "scope",
-        "purpose"
-      ],
-      "US": [
-        "scope",
-        "purpose"
-      ]
-    }
+    "emits": ["validation_complete"],
+    "consumes": ["verification_complete", "intended_use"],
+    "required_sections_for_markets": { "EU": ["validation_matrix", "clinical_eval"], "US": ["validation_matrix"] }
   },
-  "dependencies": [],
+  "dependencies": ["RD-001", "RD-002", "RD-005", "RD-007"],
   "output_config": {
     "page_size": "A4",
-    "header": "{company_legal_name} | RD-006 | Rev {revision_number}",
-    "footer": "CONFIDENTIAL \u2014 Controlled Document | ISO 13485:2016"
+    "header": "{company_legal_name} | RD-006 Design Validation | {device_name_model} | Rev {revision_number}",
+    "footer": "CONFIDENTIAL \u2014 Controlled Document | ISO 13485:2016 \u00a77.3.7"
   }
 }

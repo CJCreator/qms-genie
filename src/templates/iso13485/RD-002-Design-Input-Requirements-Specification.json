@@ -3,110 +3,83 @@
     "document_code": "RD-002",
     "document_name": "Design Input Requirements Specification",
     "department": "RD",
-    "iso_clauses": [
-      "7.3.2"
-    ],
+    "iso_clauses": ["7.3.3"],
     "default_prepared_by_role": "RD Lead",
     "default_approved_by_role": "QA Director",
     "retention_period": "Life of device + 10 years",
-    "applicable_device_types": [
-      "hardware",
-      "software",
-      "hims",
-      "combination"
-    ],
-    "applicable_markets": [
-      "EU",
-      "US",
-      "UK",
-      "global"
-    ]
+    "applicable_device_types": ["hardware", "software", "hims", "combination"],
+    "applicable_markets": ["EU", "US", "UK", "global"]
   },
   "inputs": [
-    {
-      "id": "company_legal_name",
-      "label": "Company Legal Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    },
-    {
-      "id": "device_name_model",
-      "label": "Device Name & Model",
-      "type": "text",
-      "required": true,
-      "source": "device_record"
-    },
-    {
-      "id": "qa_manager_name",
-      "label": "QA Manager Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    }
+    { "id": "company_legal_name", "label": "Company Legal Name", "type": "text", "required": true, "source": "company_profile" },
+    { "id": "device_name_model", "label": "Device Name & Model", "type": "text", "required": true, "source": "device_record" },
+    { "id": "intended_use", "label": "Intended Use", "type": "text", "required": true, "source": "device_record" },
+    { "id": "target_users", "label": "Target Users / Operators", "type": "text", "required": true, "source": "device_record" },
+    { "id": "use_environment", "label": "Use Environment", "type": "text", "required": true, "source": "device_record" }
   ],
   "sections": [
+    { "id": "header", "title": "", "type": "static", "content": "ISO 13485:2016 \u00a77.3.3 \u2014 Design Input Requirements\nDocument Code: RD-002\nRevision: {revision_number}\nDevice: {device_name_model}" },
+    { "id": "purpose", "title": "1. Purpose", "type": "ai_generated", "section_prompt": "Draft a purpose statement explaining that this document captures the documented design input requirements for {device_name_model} per ISO 13485:2016 \u00a77.3.3, including functional, performance, usability, regulatory, and risk-control inputs. Reference {ref:RD-001} as the governing plan and {ref:RD-007} as the source of risk-derived inputs." },
+    { "id": "scope", "title": "2. Scope", "type": "variable", "content": "Applies to all design inputs for {device_name_model} manufactured by {company_legal_name}. Inputs are traced forward to design outputs ({ref:RD-003}), verification ({ref:RD-005}), and validation ({ref:RD-006})." },
+    { "id": "intended_use_block", "title": "3. Intended Use & User Profile", "type": "variable", "content": "Intended Use: {intended_use}\nTarget Users: {target_users}\nUse Environment: {use_environment}" },
     {
-      "id": "header",
-      "title": "",
+      "id": "input_categories",
+      "title": "4. Design Input Categories (ISO 13485 \u00a77.3.3)",
+      "type": "clause_block",
+      "clauses": [
+        "4.1 Functional, performance, usability and safety requirements according to intended use",
+        "4.2 Applicable statutory and regulatory requirements (EU MDR / US FDA QSR / national)",
+        "4.3 Outputs of risk management (ISO 14971) per {ref:RD-007}",
+        "4.4 Information derived from previous similar designs, where applicable",
+        "4.5 Other requirements essential for design and development"
+      ],
+      "section_prompt": "For each clause above, write 2\u20134 sentences describing how {company_legal_name} satisfies the requirement for {device_name_model}. Be specific and audit-ready; reference the corresponding record in the requirements register table that follows."
+    },
+    {
+      "id": "requirements_register",
+      "title": "5. Design Input Requirements Register",
+      "type": "table_spec",
+      "columns": [
+        { "key": "req_id", "label": "Req ID", "width": 900 },
+        { "key": "category", "label": "Category", "width": 1500 },
+        { "key": "requirement", "label": "Requirement Statement", "width": 3400 },
+        { "key": "source", "label": "Source / Rationale", "width": 1800 },
+        { "key": "acceptance", "label": "Acceptance Criterion", "width": 1760 }
+      ],
+      "ai_rows_prompt": "Generate 12\u201318 realistic, traceable design input requirements for {device_name_model} (intended use: {intended_use}). Cover all five clause categories (functional, performance, usability/IEC 62366, safety/risk-derived, regulatory, biocompatibility/sterility if applicable, software/cybersecurity if applicable). Each row: req_id like REQ-001 sequential; category one of Functional|Performance|Usability|Safety|Regulatory|Software|Interoperability; requirement is a single SHALL statement; source cites the originating document or standard (e.g. ISO 14971 hazard H-04, EU MDR Annex I 14.2, user need UN-03); acceptance is measurable and verifiable. Return JSON array.",
+      "min_rows": 12
+    },
+    {
+      "id": "regulatory_inputs",
+      "title": "6. Regulatory & Standards Inputs",
+      "type": "table_spec",
+      "columns": [
+        { "key": "standard", "label": "Standard / Regulation", "width": 2400 },
+        { "key": "applicable_clause", "label": "Applicable Clause", "width": 2000 },
+        { "key": "applies_how", "label": "How It Applies to {device_name_model}", "width": 4960 }
+      ],
+      "ai_rows_prompt": "List 6\u201310 standards and regulations applicable to {device_name_model} given the markets selected. Always include ISO 13485:2016 and ISO 14971:2019. Add IEC 62366-1 if device has user interface, IEC 62304 if software, IEC 60601-1 if electrical medical equipment, ISO 10993-1 if patient contact, EU MDR 2017/745 if EU market, 21 CFR 820 if US market, UKCA / MHRA if UK. Return JSON array."
+    },
+    {
+      "id": "traceability_note",
+      "title": "7. Traceability",
       "type": "static",
-      "content": "ISO 13485:2016\nDesign Input Requirements Specification\nDocument Code: RD-002\nRevision: {revision_number}"
-    },
-    {
-      "id": "purpose",
-      "title": "1. Purpose",
-      "type": "ai_generated",
-      "section_prompt": "Draft a clear, regulatory-compliant purpose statement for the Design Input Requirements Specification document under ISO 13485:2016 for a medical device company.",
-      "editable": true
-    },
-    {
-      "id": "scope",
-      "title": "2. Scope",
-      "type": "variable",
-      "content": "This document establishes the design input requirements specification for {company_legal_name} and applies to all relevant QMS processes."
-    },
-    {
-      "id": "responsibilities",
-      "title": "3. Responsibilities",
-      "type": "static",
-      "content": "Prepared by: {default_prepared_by_role}\nApproved by: {default_approved_by_role}"
-    },
-    {
-      "id": "approval_block",
-      "title": "",
-      "type": "approval_block"
-    },
-    {
-      "id": "revision_history",
-      "title": "Revision History",
-      "type": "table",
-      "table_source": "revision_history"
-    }
+      "content": "Each requirement in this document is traced through the Requirements Traceability Matrix maintained as part of the Design History File ({ref:RD-009}). Forward links to design outputs ({ref:RD-003}), verification protocols ({ref:RD-005}), and validation activities ({ref:RD-006}) shall be kept current at each design review ({ref:RD-004})." },
+    { "id": "approval_block", "title": "", "type": "approval_block" },
+    { "id": "revision_history", "title": "Revision History", "type": "table", "table_source": "revision_history" }
   ],
   "validation_rules": {
-    "emits": [
-      "rd-002_approval",
-      "role_names"
-    ],
-    "consumes": [
-      "qa_manager_role_name",
-      "company_legal_name"
-    ],
+    "emits": ["design_input_baseline"],
+    "consumes": ["device_name_model", "intended_use", "company_legal_name"],
     "required_sections_for_markets": {
-      "EU": [
-        "scope",
-        "purpose"
-      ],
-      "US": [
-        "scope",
-        "purpose"
-      ]
+      "EU": ["regulatory_inputs", "requirements_register"],
+      "US": ["regulatory_inputs", "requirements_register"]
     }
   },
-  "dependencies": [],
+  "dependencies": ["RD-001", "RD-007"],
   "output_config": {
     "page_size": "A4",
-    "header": "{company_legal_name} | RD-002 | Rev {revision_number}",
-    "footer": "CONFIDENTIAL \u2014 Controlled Document | ISO 13485:2016"
+    "header": "{company_legal_name} | RD-002 Design Inputs | {device_name_model} | Rev {revision_number}",
+    "footer": "CONFIDENTIAL \u2014 Controlled Document | ISO 13485:2016 \u00a77.3.3"
   }
 }
