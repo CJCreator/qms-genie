@@ -12,6 +12,7 @@ import {
   planGeneration,
   listGeneratedDocuments,
   getDocumentUrl,
+  previewValidation,
 } from "@/lib/qms.functions";
 import { DEPARTMENTS, TEMPLATES, TEMPLATES_BY_CODE, directDependencies } from "@/lib/templates";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -60,12 +61,13 @@ function ProjectPage() {
   const planFn = useServerFn(planGeneration);
   const docsFn = useServerFn(listGeneratedDocuments);
   const docUrlFn = useServerFn(getDocumentUrl);
+  const validateFn = useServerFn(previewValidation);
 
   const projectQ = useQuery({ queryKey: ["project", id], queryFn: () => get({ data: { id } }) });
   const runsQ = useQuery({
     queryKey: ["runs", id],
     queryFn: () => runs({ data: { project_id: id } }),
-    refetchInterval: 4000,
+    refetchInterval: 2000,
   });
   const findingsQ = useQuery({
     queryKey: ["findings", id],
@@ -114,6 +116,26 @@ function ProjectPage() {
   const genM = useMutation({
     mutationFn: async (args?: { scope: "all" | "department" | "document"; targets?: string[] }) => {
       await saveM.mutateAsync({});
+      // Pre-flight: block on validator errors BEFORE burning AI tokens.
+      const v = await validateFn({
+        data: { project_id: id, ...(args ?? {}) },
+      });
+      if (v.blocking > 0) {
+        const lines = v.findings
+          .filter((f: any) => f.severity === "error")
+          .slice(0, 8)
+          .map((f: any) => `• ${f.field ?? "—"}: ${f.message}`)
+          .join("\n");
+        throw new Error(
+          `Cannot generate — ${v.blocking} blocking issue(s). Fix these in the wizard first:\n\n${lines}`,
+        );
+      }
+      if (v.warnings > 0) {
+        const proceed = window.confirm(
+          `${v.total} documents will be generated.\n${v.warnings} warning(s) detected — documents will render with placeholders for missing fields.\n\nContinue anyway?`,
+        );
+        if (!proceed) throw new Error("Generation cancelled.");
+      }
       return start({ data: { project_id: id, ...(args ?? {}) } });
     },
     onSuccess: () => {
@@ -125,8 +147,9 @@ function ProjectPage() {
 
   async function previewPlan(scopeType: "all" | "department" | "document", targets: string[]) {
     const p = await planFn({ data: { scope: scopeType, targets } });
+    const v = await validateFn({ data: { project_id: id, scope: scopeType, targets } });
     alert(
-      `${p.total} documents will be generated.\nAuto-added via dependencies: ${p.added_by_dependency.length}\n\nCodes:\n${p.codes.join(", ")}`,
+      `${p.total} documents will be generated.\nAuto-added via dependencies: ${p.added_by_dependency.length}\nBlocking issues: ${v.blocking} · Warnings: ${v.warnings}\n\nCodes:\n${p.codes.join(", ")}`,
     );
   }
 
@@ -407,6 +430,39 @@ function ProjectPage() {
           </div>
         </CardContent>
       </Card>
+
+      {(() => {
+        const live = (runsQ.data as any[])?.find((r) => r.status === "rendering");
+        if (!live) return null;
+        const p = live.progress || {};
+        const pct = p.total ? Math.round((p.done / p.total) * 100) : 0;
+        return (
+          <Card className="border-primary/40">
+            <CardContent className="py-4 space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  <span className="font-medium">Generating v{live.version}…</span>
+                  {p.current ? (
+                    <span className="text-xs text-muted-foreground">
+                      currently: {p.current}
+                    </span>
+                  ) : null}
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  {p.done ?? 0} / {p.total ?? "?"} · {pct}%
+                </span>
+              </div>
+              <div className="h-2 rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full bg-primary transition-all"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       <div>
         <h2 className="text-lg font-semibold mb-2">Generation runs</h2>

@@ -1,7 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { generateBundle, type ProjectData } from "./generation.server";
+import {
+  generateBundle,
+  PreRenderValidationError,
+  validateBeforeRender,
+  type ProjectData,
+} from "./generation.server";
 import {
   TEMPLATES,
   TEMPLATES_BY_CODE,
@@ -185,7 +190,27 @@ export const startGeneration = createServerFn({ method: "POST" })
     if (rErr || !run) throw new Error(rErr?.message || "Could not start run");
 
     try {
-      const result = await generateBundle(project as unknown as ProjectData, selected);
+      const result = await generateBundle(
+        project as unknown as ProjectData,
+        selected,
+        async (doneCount, totalCount, currentCode) => {
+          // Best-effort progress write; never fail the run on a progress error.
+          try {
+            await supabaseAdmin
+              .from("generation_runs")
+              .update({
+                progress: {
+                  done: doneCount,
+                  total: totalCount,
+                  current: currentCode,
+                  scope,
+                  targets,
+                },
+              })
+              .eq("id", run.id);
+          } catch {}
+        },
+      );
       const path = `${data.project_id}/${run.id}.zip`;
       const { error: upErr } = await supabaseAdmin.storage
         .from("qms-bundles")
@@ -258,6 +283,20 @@ export const startGeneration = createServerFn({ method: "POST" })
         findings: result.findings.length,
       };
     } catch (e: any) {
+      // Pre-render validator blocked the run — persist findings so the UI
+      // shows the user exactly what to fix.
+      if (e instanceof PreRenderValidationError) {
+        await supabaseAdmin.from("validation_findings").insert(
+          e.findings.map((f) => ({
+            project_id: data.project_id,
+            run_id: run.id,
+            severity: f.severity,
+            document_code: f.document_code,
+            field: f.field ?? null,
+            message: f.message,
+          })),
+        );
+      }
       await supabase
         .from("generation_runs")
         .update({
@@ -268,6 +307,45 @@ export const startGeneration = createServerFn({ method: "POST" })
         .eq("id", run.id);
       throw e;
     }
+  });
+
+// Pre-render validation preview (no AI calls, no DB writes). Lets the UI
+// surface blocking issues before the user clicks Generate.
+export const previewValidation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (d: {
+      project_id: string;
+      scope?: "all" | "department" | "document";
+      targets?: string[];
+    }) => d,
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: project, error } = await supabase
+      .from("projects")
+      .select("*")
+      .eq("id", data.project_id)
+      .single();
+    if (error || !project) throw new Error(error?.message || "Project not found");
+
+    let scope: "all" | "department" | "document" = data.scope ?? "all";
+    let targets: string[] = data.targets ?? [];
+    if (!data.scope) {
+      const ds = ((project.department_scope as unknown) as string[]) ?? [];
+      if (ds.length) {
+        scope = "department";
+        targets = ds;
+      }
+    }
+    const codes = resolveCodes(scope, targets);
+    const findings = validateBeforeRender(project as unknown as ProjectData, codes);
+    return {
+      total: codes.length,
+      findings,
+      blocking: findings.filter((f) => f.severity === "error").length,
+      warnings: findings.filter((f) => f.severity === "warning").length,
+    };
   });
 
 export const listFindings = createServerFn({ method: "POST" })
