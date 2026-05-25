@@ -278,11 +278,19 @@ function ProjectPage() {
               Next <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           ) : (
-            <Button onClick={() => genM.mutate()} disabled={genM.isPending}>
+            <Button
+              onClick={() =>
+                genM.mutate({
+                  scope: scope.length ? "department" : "all",
+                  targets: scope,
+                })
+              }
+              disabled={genM.isPending}
+            >
               {genM.isPending ? (
-                <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Generating {selectedTplCount} docs…</>
+                <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Generating with dependencies…</>
               ) : (
-                <><Sparkles className="h-4 w-4 mr-1" /> Generate {selectedTplCount} documents</>
+                <><Sparkles className="h-4 w-4 mr-1" /> Generate full set ({selectedTplCount})</>
               )}
             </Button>
           )}
@@ -295,6 +303,101 @@ function ProjectPage() {
 
       <Separator />
 
+      {/* Targeted generation: per-department and per-document with cascading deps */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Generate a single department or document</CardTitle>
+          <CardDescription>
+            Every run automatically expands to include all dependent documents
+            (QMS spine, governing procedures, upstream design / verification records)
+            so cross-references and traceability stay in sync.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">
+              By department
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {DEPARTMENTS.map((d) => (
+                <div key={d.code} className="flex gap-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => genM.mutate({ scope: "department", targets: [d.code] })}
+                    disabled={genM.isPending}
+                  >
+                    {d.code} · {d.name}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => previewPlan("department", [d.code])}
+                    title="Preview the resolved dependency set"
+                  >
+                    ?
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">
+              By document
+            </div>
+            <Input
+              placeholder="Filter by code or name…"
+              value={docFilter}
+              onChange={(e) => setDocFilter(e.target.value)}
+              className="mb-2"
+            />
+            <div className="max-h-72 overflow-auto border rounded-md divide-y">
+              {TEMPLATES.filter((t) => {
+                if (!docFilter) return true;
+                const q = docFilter.toLowerCase();
+                return (
+                  t.meta.document_code.toLowerCase().includes(q) ||
+                  t.meta.document_name.toLowerCase().includes(q)
+                );
+              })
+                .slice(0, 60)
+                .map((t) => {
+                  const deps = directDependencies(t.meta.document_code);
+                  return (
+                    <div
+                      key={t.meta.document_code}
+                      className="flex items-center justify-between px-3 py-2 text-sm gap-3"
+                    >
+                      <div className="min-w-0">
+                        <div className="font-medium truncate">
+                          {t.meta.document_code} · {t.meta.document_name}
+                        </div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          Cascades into {deps.length} dependent docs · ISO {t.meta.iso_clauses.join(", ")}
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        disabled={genM.isPending}
+                        onClick={() =>
+                          genM.mutate({
+                            scope: "document",
+                            targets: [t.meta.document_code],
+                          })
+                        }
+                      >
+                        <Sparkles className="h-3 w-3 mr-1" /> Generate + deps
+                      </Button>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <div>
         <h2 className="text-lg font-semibold mb-2">Generation runs</h2>
         {runsQ.data?.length ? (
@@ -303,10 +406,19 @@ function ProjectPage() {
               <Card key={r.id}>
                 <CardContent className="flex items-center justify-between py-3 text-sm">
                   <div>
-                    <div className="font-medium">v{r.version} · <Badge variant="secondary">{r.status}</Badge></div>
+                    <div className="font-medium">
+                      v{r.version} · <Badge variant="secondary">{r.status}</Badge>
+                      {r.summary?.scope ? (
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          scope: {r.summary.scope}
+                          {r.summary?.targets?.length ? ` (${r.summary.targets.join(", ")})` : ""}
+                        </span>
+                      ) : null}
+                    </div>
                     <div className="text-xs text-muted-foreground">
                       Started {new Date(r.started_at).toLocaleString()}
                       {r.summary?.documents ? ` · ${r.summary.documents} documents` : ""}
+                      {r.summary?.findings ? ` · ${r.summary.findings} findings` : ""}
                       {r.error ? ` · ${r.error}` : ""}
                     </div>
                   </div>
@@ -321,6 +433,39 @@ function ProjectPage() {
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">No runs yet — complete the wizard and click Generate.</p>
+        )}
+      </div>
+
+      <div>
+        <h2 className="text-lg font-semibold mb-2">Consistency findings</h2>
+        {findingsQ.data?.length ? (
+          <div className="space-y-1">
+            {findingsQ.data.map((f: any) => (
+              <div
+                key={f.id}
+                className="text-xs border rounded-md px-3 py-2 flex items-start gap-2"
+              >
+                <Badge
+                  variant={
+                    f.severity === "error"
+                      ? "destructive"
+                      : f.severity === "warning"
+                      ? "secondary"
+                      : "outline"
+                  }
+                >
+                  {f.severity}
+                </Badge>
+                <div>
+                  {f.document_code ? <strong>{f.document_code}: </strong> : null}
+                  {f.message}
+                  {f.field ? <span className="text-muted-foreground"> ({f.field})</span> : null}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">No findings recorded yet.</p>
         )}
       </div>
     </div>
