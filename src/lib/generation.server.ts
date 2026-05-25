@@ -17,6 +17,7 @@ import {
   Header,
   Footer,
   PageNumber,
+  ShadingType,
 } from "docx";
 import JSZip from "jszip";
 import ExcelJS from "exceljs";
@@ -167,7 +168,7 @@ Department additional context: ${deptInput || "(none)"}
 Cross-referenceable documents in this run (use {ref:CODE} placeholders to link):
 ${depList}`;
 
-  const out: { section: TemplateSection; text: string }[] = [];
+  const out: { section: TemplateSection; text: string; payload?: any }[] = [];
   for (const sec of template.sections) {
     if (sec.type === "static" || sec.type === "variable") {
       out.push({ section: sec, text: substitute(sec.content, vars) });
@@ -178,6 +179,40 @@ Section to author: ${sec.title}
 Instruction: ${sec.section_prompt}`;
       const text = await callAI(REGULATORY_SYSTEM_PROMPT, userPrompt);
       out.push({ section: sec, text });
+    } else if (sec.type === "clause_block") {
+      const userPrompt = `${orgContext}
+
+You are authoring section "${sec.title}" which covers ISO 13485 clause(s) ${sec.clauses.join(", ")}.
+For EACH clause listed, produce a short numbered subsection (e.g. "4.1.1 …") with concrete, procedural language tailored to the company and device above. Do NOT restate the clause text generically — write what THIS company does to meet it. Cite related QMS documents using {ref:CODE} placeholders where appropriate.
+
+Instruction: ${sec.section_prompt}`;
+      const text = await callAI(REGULATORY_SYSTEM_PROMPT, userPrompt);
+      out.push({ section: sec, text });
+    } else if (sec.type === "table_spec") {
+      let rows: Record<string, string>[] = sec.rows ? sec.rows.map((r) => {
+        const o: Record<string, string> = {};
+        for (const k of Object.keys(r)) o[k] = substitute(r[k], vars);
+        return o;
+      }) : [];
+      if (sec.ai_rows_prompt) {
+        const colSpec = sec.columns.map((c) => `"${c.key}" (${c.label})`).join(", ");
+        const userPrompt = `${orgContext}
+
+You are filling rows for the table "${sec.title}".
+Columns: ${colSpec}.
+Return ONLY a JSON array (no prose, no markdown fences) of at least ${sec.min_rows ?? 3} objects. Each object MUST use exactly these keys: ${sec.columns.map((c) => `"${c.key}"`).join(", ")}.
+Be specific to the company and device above — no placeholders like "TBD".
+
+Instruction: ${sec.ai_rows_prompt}`;
+        const raw = await callAI(REGULATORY_SYSTEM_PROMPT, userPrompt);
+        const aiRows = parseJsonArray(raw);
+        if (aiRows.length) rows = [...rows, ...aiRows];
+      }
+      out.push({
+        section: sec,
+        text: rows.map((r) => sec.columns.map((c) => `${c.label}: ${r[c.key] ?? ""}`).join(" | ")).join("\n"),
+        payload: { rows },
+      });
     } else if (sec.type === "approval_block") {
       out.push({
         section: sec,
@@ -191,6 +226,27 @@ Instruction: ${sec.section_prompt}`;
     }
   }
   return out;
+}
+
+function parseJsonArray(raw: string): Record<string, string>[] {
+  if (!raw) return [];
+  // Strip markdown fences if model added them
+  const cleaned = raw.replace(/```(?:json)?/gi, "").replace(/```/g, "").trim();
+  // Find the first [ and last ]
+  const start = cleaned.indexOf("[");
+  const end = cleaned.lastIndexOf("]");
+  if (start === -1 || end === -1) return [];
+  try {
+    const arr = JSON.parse(cleaned.slice(start, end + 1));
+    if (!Array.isArray(arr)) return [];
+    return arr.filter((r) => r && typeof r === "object").map((r) => {
+      const o: Record<string, string> = {};
+      for (const k of Object.keys(r)) o[k] = String(r[k] ?? "");
+      return o;
+    });
+  } catch {
+    return [];
+  }
 }
 
 // ------- cross-reference rewriter -----------------------------------------
@@ -213,7 +269,7 @@ function rewriteCrossRefs(
 
 function buildDocx(
   template: DocumentTemplate,
-  rendered: { section: TemplateSection; text: string }[],
+  rendered: { section: TemplateSection; text: string; payload?: any }[],
   vars: Record<string, string>,
 ): Promise<Buffer> {
   const children: any[] = [];
@@ -242,7 +298,10 @@ function buildDocx(
     }),
   );
 
-  for (const { section, text } of rendered) {
+  const cellBorder = { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" };
+  const cellBorders = { top: cellBorder, bottom: cellBorder, left: cellBorder, right: cellBorder };
+
+  for (const { section, text, payload } of rendered) {
     if (section.title) {
       children.push(
         new Paragraph({
@@ -260,12 +319,7 @@ function buildDocx(
               new TableCell({
                 width: { size: 9360, type: WidthType.DXA },
                 margins: { top: 80, bottom: 80, left: 120, right: 120 },
-                borders: {
-                  top: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" },
-                  bottom: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" },
-                  left: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" },
-                  right: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" },
-                },
+                borders: cellBorders,
                 children: [new Paragraph({ children: [new TextRun(line)] })],
               }),
             ],
@@ -278,6 +332,46 @@ function buildDocx(
           rows,
         }),
       );
+    } else if (section.type === "table_spec") {
+      const cols = section.columns;
+      const totalW = 9360;
+      const baseW = Math.floor(totalW / cols.length);
+      const colWidths = cols.map((_, i) => (i === cols.length - 1 ? totalW - baseW * (cols.length - 1) : baseW));
+      const headerRow = new TableRow({
+        tableHeader: true,
+        children: cols.map((c, i) => new TableCell({
+          width: { size: colWidths[i], type: WidthType.DXA },
+          margins: { top: 80, bottom: 80, left: 120, right: 120 },
+          borders: cellBorders,
+          shading: { fill: "EEF2F7", type: ShadingType.CLEAR, color: "auto" },
+          children: [new Paragraph({ children: [new TextRun({ text: c.label, bold: true, size: 20 })] })],
+        })),
+      });
+      const dataRows: TableRow[] = ((payload?.rows ?? []) as Record<string, string>[]).map(
+        (r) => new TableRow({
+          children: cols.map((c, i) => new TableCell({
+            width: { size: colWidths[i], type: WidthType.DXA },
+            margins: { top: 80, bottom: 80, left: 120, right: 120 },
+            borders: cellBorders,
+            children: [new Paragraph({ children: [new TextRun({ text: String(r[c.key] ?? ""), size: 20 })] })],
+          })),
+        }),
+      );
+      if (!dataRows.length) {
+        dataRows.push(new TableRow({
+          children: cols.map((_, i) => new TableCell({
+            width: { size: colWidths[i], type: WidthType.DXA },
+            margins: { top: 80, bottom: 80, left: 120, right: 120 },
+            borders: cellBorders,
+            children: [new Paragraph({ children: [new TextRun({ text: "—", italics: true, size: 20, color: "888888" })] })],
+          })),
+        }));
+      }
+      children.push(new Table({
+        width: { size: totalW, type: WidthType.DXA },
+        columnWidths: colWidths,
+        rows: [headerRow, ...dataRows],
+      }));
     } else {
       for (const line of text.split("\n")) {
         children.push(
@@ -539,7 +633,7 @@ export async function generateBundle(
   type RenderedDoc = {
     code: string;
     template: DocumentTemplate;
-    sections: { section: TemplateSection; text: string }[];
+    sections: { section: TemplateSection; text: string; payload?: any }[];
   };
   const renderedDocs: RenderedDoc[] = [];
   let done = 0;
@@ -558,7 +652,6 @@ export async function generateBundle(
   await Promise.all(renderTasks);
 
   // ---- Pass 2: cross-reference rewriter ----------------------------------
-  // Build registry from the docs we actually rendered so {ref:CODE} resolves.
   const registry: Record<string, { name: string }> = {};
   for (const r of renderedDocs) {
     registry[r.code] = { name: r.template.meta.document_name };
@@ -567,6 +660,7 @@ export async function generateBundle(
     r.sections = r.sections.map((s) => ({
       section: s.section,
       text: rewriteCrossRefs(s.text, registry),
+      payload: s.payload,
     }));
   }
 

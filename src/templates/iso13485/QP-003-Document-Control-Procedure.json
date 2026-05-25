@@ -3,110 +3,107 @@
     "document_code": "QP-003",
     "document_name": "Document Control Procedure",
     "department": "QMS",
-    "iso_clauses": [
-      "4.2.4"
-    ],
+    "iso_clauses": ["4.2.4"],
     "default_prepared_by_role": "QA Manager",
-    "default_approved_by_role": "CEO / Top Management",
+    "default_approved_by_role": "QA Director",
     "retention_period": "Permanent",
-    "applicable_device_types": [
-      "hardware",
-      "software",
-      "hims",
-      "combination"
-    ],
-    "applicable_markets": [
-      "EU",
-      "US",
-      "UK",
-      "global"
-    ]
+    "applicable_device_types": ["hardware", "software", "hims", "combination"],
+    "applicable_markets": ["EU", "US", "UK", "global"]
   },
   "inputs": [
-    {
-      "id": "company_legal_name",
-      "label": "Company Legal Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    },
-    {
-      "id": "device_name_model",
-      "label": "Device Name & Model",
-      "type": "text",
-      "required": true,
-      "source": "device_record"
-    },
-    {
-      "id": "qa_manager_name",
-      "label": "QA Manager Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    }
+    { "id": "company_legal_name", "label": "Company Legal Name", "type": "text", "required": true, "source": "company_profile" }
   ],
   "sections": [
-    {
-      "id": "header",
-      "title": "",
-      "type": "static",
-      "content": "ISO 13485:2016\nDocument Control Procedure\nDocument Code: QP-003\nRevision: {revision_number}"
-    },
     {
       "id": "purpose",
       "title": "1. Purpose",
       "type": "ai_generated",
-      "section_prompt": "Draft a clear, regulatory-compliant purpose statement for the Document Control Procedure document under ISO 13485:2016 for a medical device company.",
-      "editable": true
+      "section_prompt": "One paragraph: purpose of this procedure — to control QMS documents per ISO 13485:2016 clause 4.2.4 so the correct version is available at points of use and obsolete documents are prevented from unintended use."
     },
     {
       "id": "scope",
       "title": "2. Scope",
-      "type": "variable",
-      "content": "This document establishes the document control procedure for {company_legal_name} and applies to all relevant QMS processes."
+      "type": "ai_generated",
+      "section_prompt": "Specify which document types are controlled (procedures, work instructions, forms, templates, drawings, software DHF/SBOM lists). Distinguish controlled documents from records (records are governed by {ref:QP-004})."
     },
     {
-      "id": "responsibilities",
-      "title": "3. Responsibilities",
-      "type": "static",
-      "content": "Prepared by: {default_prepared_by_role}\nApproved by: {default_approved_by_role}"
+      "id": "roles",
+      "title": "3. Roles and Responsibilities",
+      "type": "table_spec",
+      "columns": [
+        { "key": "role", "label": "Role" },
+        { "key": "responsibility", "label": "Responsibility" }
+      ],
+      "rows": [
+        { "role": "Author / Originator", "responsibility": "Drafts new or revised documents using the controlled template; performs self-review." },
+        { "role": "Subject Matter Reviewer", "responsibility": "Verifies technical accuracy and clause coverage." },
+        { "role": "QA Manager", "responsibility": "Reviews for QMS compliance, ensures revision numbering and metadata are correct, manages the master list." },
+        { "role": "Approver (per RACI)", "responsibility": "Approves release; signature is captured in the document approval block." },
+        { "role": "Document Owner", "responsibility": "Initiates periodic review and change requests." }
+      ]
     },
     {
-      "id": "approval_block",
-      "title": "",
-      "type": "approval_block"
+      "id": "procedure",
+      "title": "4. Procedure",
+      "type": "clause_block",
+      "clauses": ["4.2.4 a", "4.2.4 b", "4.2.4 c", "4.2.4 d", "4.2.4 e", "4.2.4 f", "4.2.4 g"],
+      "section_prompt": "For EACH lettered sub-requirement of 4.2.4 (review and approve before issue; review, update and re-approve; identify changes and current revision; make relevant versions available at points of use; remain legible and identifiable; control external documents; prevent unintended use of obsolete documents), write the concrete steps THIS company takes, including the system/tool used (e.g. Google Drive controlled folder, Greenlight Guru, MasterControl, Jira). Include numbering scheme (e.g. QP-### Rev X.Y), change request workflow, and retention of obsolete copies marked OBSOLETE."
     },
+    {
+      "id": "revision_scheme",
+      "title": "5. Revision Numbering and Change Classification",
+      "type": "ai_generated",
+      "section_prompt": "Define major vs minor revision numbering (e.g. X.0 for substantive change requiring re-approval; X.Y for editorial). Define what triggers a major change (regulatory impact, risk re-assessment, process change). Define change classification: editorial / clarifying / substantive / regulatory."
+    },
+    {
+      "id": "external_docs",
+      "title": "6. Control of External Documents",
+      "type": "ai_generated",
+      "section_prompt": "Describe handling of external documents (standards, regulations, supplier specifications): how they are identified, registered in {ref:QP-006}, kept current via subscription/alert, and distributed."
+    },
+    {
+      "id": "master_list",
+      "title": "7. Master Document List — Required Columns",
+      "type": "table_spec",
+      "columns": [
+        { "key": "field", "label": "Field" },
+        { "key": "description", "label": "Description" }
+      ],
+      "rows": [
+        { "field": "Document Code", "description": "Unique identifier (e.g. QP-003)." },
+        { "field": "Document Name", "description": "Full controlled title." },
+        { "field": "Revision", "description": "Current released revision number." },
+        { "field": "Effective Date", "description": "Date of release into use." },
+        { "field": "Owner", "description": "Named role responsible for maintenance." },
+        { "field": "Storage Location", "description": "Controlled location / path." },
+        { "field": "Retention", "description": "Retention period per {ref:QP-004}." },
+        { "field": "Status", "description": "Draft / In Review / Released / Superseded / Obsolete." }
+      ]
+    },
+    { "id": "approval_block", "title": "Approval", "type": "approval_block" },
     {
       "id": "revision_history",
       "title": "Revision History",
-      "type": "table",
-      "table_source": "revision_history"
+      "type": "table_spec",
+      "columns": [
+        { "key": "rev", "label": "Rev" },
+        { "key": "date", "label": "Date" },
+        { "key": "author", "label": "Author" },
+        { "key": "summary", "label": "Change Summary" }
+      ],
+      "rows": [
+        { "rev": "1.0", "date": "{effective_date}", "author": "{qa_manager_name}", "summary": "Initial release." }
+      ]
     }
   ],
   "validation_rules": {
-    "emits": [
-      "qp-003_approval",
-      "role_names"
-    ],
-    "consumes": [
-      "qa_manager_role_name",
-      "company_legal_name"
-    ],
-    "required_sections_for_markets": {
-      "EU": [
-        "scope",
-        "purpose"
-      ],
-      "US": [
-        "scope",
-        "purpose"
-      ]
-    }
+    "emits": ["document_control_workflow", "revision_numbering"],
+    "consumes": ["company_legal_name"]
   },
-  "dependencies": [],
+  "dependencies": ["QP-004"],
   "output_config": {
     "page_size": "A4",
-    "header": "{company_legal_name} | QP-003 | Rev {revision_number}",
-    "footer": "CONFIDENTIAL \u2014 Controlled Document | ISO 13485:2016"
+    "header": "{company_legal_name} | QP-003 Document Control | Rev {revision_number}",
+    "footer": "CONFIDENTIAL — Controlled Document | ISO 13485:2016 §4.2.4"
   }
 }

@@ -3,110 +3,64 @@
     "document_code": "QP-006",
     "document_name": "Regulatory Requirements Register",
     "department": "QMS",
-    "iso_clauses": [
-      "4.1"
-    ],
-    "default_prepared_by_role": "QA Manager",
-    "default_approved_by_role": "CEO / Top Management",
+    "iso_clauses": ["4.1.1", "4.2.1", "5.6.2"],
+    "default_prepared_by_role": "RA Lead",
+    "default_approved_by_role": "QA Director",
     "retention_period": "Permanent",
-    "applicable_device_types": [
-      "hardware",
-      "software",
-      "hims",
-      "combination"
-    ],
-    "applicable_markets": [
-      "EU",
-      "US",
-      "UK",
-      "global"
-    ]
+    "applicable_device_types": ["hardware", "software", "hims", "combination"],
+    "applicable_markets": ["EU", "US", "UK", "global"]
   },
   "inputs": [
-    {
-      "id": "company_legal_name",
-      "label": "Company Legal Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    },
-    {
-      "id": "device_name_model",
-      "label": "Device Name & Model",
-      "type": "text",
-      "required": true,
-      "source": "device_record"
-    },
-    {
-      "id": "qa_manager_name",
-      "label": "QA Manager Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    }
+    { "id": "company_legal_name", "label": "Company Legal Name", "type": "text", "required": true, "source": "company_profile" }
   ],
   "sections": [
-    {
-      "id": "header",
-      "title": "",
-      "type": "static",
-      "content": "ISO 13485:2016\nRegulatory Requirements Register\nDocument Code: QP-006\nRevision: {revision_number}"
-    },
     {
       "id": "purpose",
       "title": "1. Purpose",
       "type": "ai_generated",
-      "section_prompt": "Draft a clear, regulatory-compliant purpose statement for the Regulatory Requirements Register document under ISO 13485:2016 for a medical device company.",
-      "editable": true
+      "section_prompt": "One paragraph: maintain a live register of all regulatory, statutory and standards requirements applicable to the company's devices and markets, with assigned owners and review cadence."
     },
     {
-      "id": "scope",
-      "title": "2. Scope",
-      "type": "variable",
-      "content": "This document establishes the regulatory requirements register for {company_legal_name} and applies to all relevant QMS processes."
+      "id": "register",
+      "title": "2. Regulatory Register",
+      "type": "table_spec",
+      "columns": [
+        { "key": "ref", "label": "Reference" },
+        { "key": "title", "label": "Title" },
+        { "key": "market", "label": "Market" },
+        { "key": "applicability", "label": "Applicability to Device" },
+        { "key": "owner", "label": "Owner" },
+        { "key": "review_cadence", "label": "Review Cadence" }
+      ],
+      "ai_rows_prompt": "Populate the register for the target markets and device type above. Include as applicable: ISO 13485:2016, ISO 14971:2019, IEC 62366-1:2015, IEC 62304:2006+A1:2015 (if software), EU MDR 2017/745, MDCG guidance documents relevant to classification, EU IVDR 2017/746 (if IVD), UK MDR 2002 (as amended) and MHRA guidance, US 21 CFR Part 820, 21 CFR Part 803 (MDR), 21 CFR Part 806, 21 CFR Part 11 (if e-records), FDA premarket cybersecurity guidance (2023), MDSAP. Assign realistic owners and a quarterly or semi-annual review cadence.",
+      "min_rows": 10
     },
     {
-      "id": "responsibilities",
-      "title": "3. Responsibilities",
-      "type": "static",
-      "content": "Prepared by: {default_prepared_by_role}\nApproved by: {default_approved_by_role}"
+      "id": "process",
+      "title": "3. Maintenance Process",
+      "type": "ai_generated",
+      "section_prompt": "Describe how RA Lead monitors changes (subscriptions to MHRA, FDA, EUR-Lex, ISO updates), how new/changed requirements are assessed for impact, fed into Management Review per {ref:QP-005}, and trigger CAPA via {ref:CA-001} where required."
     },
-    {
-      "id": "approval_block",
-      "title": "",
-      "type": "approval_block"
-    },
+    { "id": "approval_block", "title": "Approval", "type": "approval_block" },
     {
       "id": "revision_history",
       "title": "Revision History",
-      "type": "table",
-      "table_source": "revision_history"
+      "type": "table_spec",
+      "columns": [
+        { "key": "rev", "label": "Rev" }, { "key": "date", "label": "Date" },
+        { "key": "author", "label": "Author" }, { "key": "summary", "label": "Change Summary" }
+      ],
+      "rows": [{ "rev": "1.0", "date": "{effective_date}", "author": "{qa_manager_name}", "summary": "Initial release." }]
     }
   ],
   "validation_rules": {
-    "emits": [
-      "qp-006_approval",
-      "role_names"
-    ],
-    "consumes": [
-      "qa_manager_role_name",
-      "company_legal_name"
-    ],
-    "required_sections_for_markets": {
-      "EU": [
-        "scope",
-        "purpose"
-      ],
-      "US": [
-        "scope",
-        "purpose"
-      ]
-    }
+    "emits": ["regulatory_register"],
+    "consumes": ["target_markets", "device_classification"]
   },
-  "dependencies": [],
+  "dependencies": ["QP-005", "CA-001"],
   "output_config": {
     "page_size": "A4",
-    "header": "{company_legal_name} | QP-006 | Rev {revision_number}",
-    "footer": "CONFIDENTIAL \u2014 Controlled Document | ISO 13485:2016"
+    "header": "{company_legal_name} | QP-006 Regulatory Register | Rev {revision_number}",
+    "footer": "CONFIDENTIAL — Controlled Document"
   }
 }
