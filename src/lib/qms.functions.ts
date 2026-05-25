@@ -2,7 +2,45 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { generateBundle, type ProjectData } from "./generation.server";
-import { TEMPLATES } from "./templates";
+import {
+  TEMPLATES,
+  TEMPLATES_BY_CODE,
+  expandWithDependencies,
+  expandDepartments,
+  directDependencies,
+} from "./templates";
+
+// Plan a generation: returns the resolved code list (with dep closure) for a UI preview.
+export const planGeneration = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (d: { scope: "all" | "department" | "document"; targets?: string[] }) => d,
+  )
+  .handler(async ({ data }) => {
+    const codes = resolveCodes(data.scope, data.targets ?? []);
+    return {
+      codes,
+      total: codes.length,
+      added_by_dependency: codes.filter(
+        (c) => !(data.targets ?? []).includes(c),
+      ),
+    };
+  });
+
+function resolveCodes(
+  scope: "all" | "department" | "document",
+  targets: string[],
+): string[] {
+  if (scope === "all") {
+    return expandWithDependencies(TEMPLATES.map((t) => t.meta.document_code));
+  }
+  if (scope === "department") {
+    return expandDepartments(targets);
+  }
+  // single/multi document
+  return expandWithDependencies(targets.filter((c) => TEMPLATES_BY_CODE[c]));
+}
+
 
 // List user's projects (in their workspaces).
 export const listProjects = createServerFn({ method: "GET" })
