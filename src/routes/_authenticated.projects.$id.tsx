@@ -446,6 +446,16 @@ function ProjectPage() {
         )}
       </div>
 
+      <DocumentRepository
+        docs={(docsQ.data as any[]) ?? []}
+        onDownload={async (docId) => {
+          const { url } = await docUrlFn({ data: { document_id: docId } });
+          window.open(url, "_blank");
+        }}
+      />
+
+
+
       <div>
         <h2 className="text-lg font-semibold mb-2">Consistency findings</h2>
         {findingsQ.data?.length ? (
