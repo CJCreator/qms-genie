@@ -167,7 +167,7 @@ Department additional context: ${deptInput || "(none)"}
 Cross-referenceable documents in this run (use {ref:CODE} placeholders to link):
 ${depList}`;
 
-  const out: { section: TemplateSection; text: string }[] = [];
+  const out: { section: TemplateSection; text: string; payload?: any }[] = [];
   for (const sec of template.sections) {
     if (sec.type === "static" || sec.type === "variable") {
       out.push({ section: sec, text: substitute(sec.content, vars) });
@@ -178,6 +178,40 @@ Section to author: ${sec.title}
 Instruction: ${sec.section_prompt}`;
       const text = await callAI(REGULATORY_SYSTEM_PROMPT, userPrompt);
       out.push({ section: sec, text });
+    } else if (sec.type === "clause_block") {
+      const userPrompt = `${orgContext}
+
+You are authoring section "${sec.title}" which covers ISO 13485 clause(s) ${sec.clauses.join(", ")}.
+For EACH clause listed, produce a short numbered subsection (e.g. "4.1.1 …") with concrete, procedural language tailored to the company and device above. Do NOT restate the clause text generically — write what THIS company does to meet it. Cite related QMS documents using {ref:CODE} placeholders where appropriate.
+
+Instruction: ${sec.section_prompt}`;
+      const text = await callAI(REGULATORY_SYSTEM_PROMPT, userPrompt);
+      out.push({ section: sec, text });
+    } else if (sec.type === "table_spec") {
+      let rows: Record<string, string>[] = sec.rows ? sec.rows.map((r) => {
+        const o: Record<string, string> = {};
+        for (const k of Object.keys(r)) o[k] = substitute(r[k], vars);
+        return o;
+      }) : [];
+      if (sec.ai_rows_prompt) {
+        const colSpec = sec.columns.map((c) => `"${c.key}" (${c.label})`).join(", ");
+        const userPrompt = `${orgContext}
+
+You are filling rows for the table "${sec.title}".
+Columns: ${colSpec}.
+Return ONLY a JSON array (no prose, no markdown fences) of at least ${sec.min_rows ?? 3} objects. Each object MUST use exactly these keys: ${sec.columns.map((c) => `"${c.key}"`).join(", ")}.
+Be specific to the company and device above — no placeholders like "TBD".
+
+Instruction: ${sec.ai_rows_prompt}`;
+        const raw = await callAI(REGULATORY_SYSTEM_PROMPT, userPrompt);
+        const aiRows = parseJsonArray(raw);
+        if (aiRows.length) rows = [...rows, ...aiRows];
+      }
+      out.push({
+        section: sec,
+        text: rows.map((r) => sec.columns.map((c) => `${c.label}: ${r[c.key] ?? ""}`).join(" | ")).join("\n"),
+        payload: { rows },
+      });
     } else if (sec.type === "approval_block") {
       out.push({
         section: sec,
@@ -191,6 +225,27 @@ Instruction: ${sec.section_prompt}`;
     }
   }
   return out;
+}
+
+function parseJsonArray(raw: string): Record<string, string>[] {
+  if (!raw) return [];
+  // Strip markdown fences if model added them
+  const cleaned = raw.replace(/```(?:json)?/gi, "").replace(/```/g, "").trim();
+  // Find the first [ and last ]
+  const start = cleaned.indexOf("[");
+  const end = cleaned.lastIndexOf("]");
+  if (start === -1 || end === -1) return [];
+  try {
+    const arr = JSON.parse(cleaned.slice(start, end + 1));
+    if (!Array.isArray(arr)) return [];
+    return arr.filter((r) => r && typeof r === "object").map((r) => {
+      const o: Record<string, string> = {};
+      for (const k of Object.keys(r)) o[k] = String(r[k] ?? "");
+      return o;
+    });
+  } catch {
+    return [];
+  }
 }
 
 // ------- cross-reference rewriter -----------------------------------------
