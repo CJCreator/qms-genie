@@ -633,7 +633,7 @@ export async function generateBundle(
   type RenderedDoc = {
     code: string;
     template: DocumentTemplate;
-    sections: { section: TemplateSection; text: string }[];
+    sections: { section: TemplateSection; text: string; payload?: any }[];
   };
   const renderedDocs: RenderedDoc[] = [];
   let done = 0;
@@ -652,7 +652,6 @@ export async function generateBundle(
   await Promise.all(renderTasks);
 
   // ---- Pass 2: cross-reference rewriter ----------------------------------
-  // Build registry from the docs we actually rendered so {ref:CODE} resolves.
   const registry: Record<string, { name: string }> = {};
   for (const r of renderedDocs) {
     registry[r.code] = { name: r.template.meta.document_name };
@@ -661,6 +660,7 @@ export async function generateBundle(
     r.sections = r.sections.map((s) => ({
       section: s.section,
       text: rewriteCrossRefs(s.text, registry),
+      payload: s.payload,
     }));
   }
 
