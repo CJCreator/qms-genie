@@ -18,7 +18,19 @@ import {
 import JSZip from "jszip";
 import ExcelJS from "exceljs";
 import pLimit from "p-limit";
-import { TEMPLATES_BY_CODE, type DocumentTemplate, type TemplateSection } from "./templates";
+import {
+  TEMPLATES_BY_CODE,
+  directDependencies,
+  type DocumentTemplate,
+  type TemplateSection,
+} from "./templates";
+
+export interface ValidationFinding {
+  document_code: string | null;
+  severity: "error" | "warning" | "info";
+  message: string;
+  field?: string | null;
+}
 
 export interface ProjectData {
   id: string;
