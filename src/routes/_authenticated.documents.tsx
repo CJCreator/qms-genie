@@ -35,14 +35,6 @@ import {
   Archive,
   FileText,
 } from "lucide-react";
-import {
-  ChevronDown,
-  ChevronRight,
-  Download,
-  CheckCircle2,
-  Archive,
-  FileText,
-} from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/documents")({
