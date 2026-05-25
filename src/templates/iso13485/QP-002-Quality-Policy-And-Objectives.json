@@ -1,112 +1,75 @@
 {
   "meta": {
     "document_code": "QP-002",
-    "document_name": "Quality Policy & Objectives",
+    "document_name": "Quality Policy and Objectives",
     "department": "QMS",
-    "iso_clauses": [
-      "5.2"
-    ],
+    "iso_clauses": ["5.3", "5.4.1"],
     "default_prepared_by_role": "QA Manager",
     "default_approved_by_role": "CEO / Top Management",
     "retention_period": "Permanent",
-    "applicable_device_types": [
-      "hardware",
-      "software",
-      "hims",
-      "combination"
-    ],
-    "applicable_markets": [
-      "EU",
-      "US",
-      "UK",
-      "global"
-    ]
+    "applicable_device_types": ["hardware", "software", "hims", "combination"],
+    "applicable_markets": ["EU", "US", "UK", "global"]
   },
   "inputs": [
-    {
-      "id": "company_legal_name",
-      "label": "Company Legal Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    },
-    {
-      "id": "device_name_model",
-      "label": "Device Name & Model",
-      "type": "text",
-      "required": true,
-      "source": "device_record"
-    },
-    {
-      "id": "qa_manager_name",
-      "label": "QA Manager Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    }
+    { "id": "company_legal_name", "label": "Company Legal Name", "type": "text", "required": true, "source": "company_profile" }
   ],
   "sections": [
     {
-      "id": "header",
-      "title": "",
-      "type": "static",
-      "content": "ISO 13485:2016\nQuality Policy & Objectives\nDocument Code: QP-002\nRevision: {revision_number}"
-    },
-    {
-      "id": "purpose",
-      "title": "1. Purpose",
+      "id": "policy_statement",
+      "title": "1. Quality Policy Statement",
       "type": "ai_generated",
-      "section_prompt": "Draft a clear, regulatory-compliant purpose statement for the Quality Policy & Objectives document under ISO 13485:2016 for a medical device company.",
-      "editable": true
+      "section_prompt": "Author a Quality Policy statement (3–5 short paragraphs) signed by top management. It MUST include explicit commitments to: (a) comply with ISO 13485:2016 and applicable regulatory requirements in the listed markets, (b) maintain effectiveness of the QMS, (c) patient safety and product quality, (d) provide a framework for establishing and reviewing quality objectives. Voice: first-person plural, signed by CEO."
     },
     {
-      "id": "scope",
-      "title": "2. Scope",
-      "type": "variable",
-      "content": "This document establishes the quality policy & objectives for {company_legal_name} and applies to all relevant QMS processes."
+      "id": "communication",
+      "title": "2. Communication of the Policy",
+      "type": "ai_generated",
+      "section_prompt": "Describe how this policy is communicated to all personnel (onboarding training, posted in working areas, intranet), how understanding is verified, and how it is reviewed at each Management Review per {ref:QP-005}."
     },
     {
-      "id": "responsibilities",
-      "title": "3. Responsibilities",
-      "type": "static",
-      "content": "Prepared by: {default_prepared_by_role}\nApproved by: {default_approved_by_role}"
+      "id": "objectives",
+      "title": "3. Quality Objectives — Current Period",
+      "type": "table_spec",
+      "columns": [
+        { "key": "objective", "label": "Quality Objective" },
+        { "key": "metric", "label": "Metric (SMART)" },
+        { "key": "target", "label": "Target" },
+        { "key": "owner", "label": "Owner" },
+        { "key": "cadence", "label": "Review Cadence" }
+      ],
+      "ai_rows_prompt": "Produce 6–8 SMART quality objectives appropriate for a company of this stage and device type. Cover: on-time release of design outputs, CAPA closure cycle time, supplier OTIF, complaint response SLA, internal audit completion, training compliance, post-market surveillance review cadence, software defect escape rate (if software/HIMS). Each row must have a specific numeric target and named owner role.",
+      "min_rows": 6
     },
     {
-      "id": "approval_block",
-      "title": "",
-      "type": "approval_block"
+      "id": "linkage",
+      "title": "4. Linkage to Processes and Tracking",
+      "type": "ai_generated",
+      "section_prompt": "Briefly explain how each objective links to a measurable QMS process and is tracked in {ref:QF-002} and reviewed in Management Review per {ref:QP-005}."
     },
+    { "id": "approval_block", "title": "Approval", "type": "approval_block" },
     {
       "id": "revision_history",
       "title": "Revision History",
-      "type": "table",
-      "table_source": "revision_history"
+      "type": "table_spec",
+      "columns": [
+        { "key": "rev", "label": "Rev" },
+        { "key": "date", "label": "Date" },
+        { "key": "author", "label": "Author" },
+        { "key": "summary", "label": "Change Summary" }
+      ],
+      "rows": [
+        { "rev": "1.0", "date": "{effective_date}", "author": "{qa_manager_name}", "summary": "Initial release." }
+      ]
     }
   ],
   "validation_rules": {
-    "emits": [
-      "qp-002_approval",
-      "role_names"
-    ],
-    "consumes": [
-      "qa_manager_role_name",
-      "company_legal_name"
-    ],
-    "required_sections_for_markets": {
-      "EU": [
-        "scope",
-        "purpose"
-      ],
-      "US": [
-        "scope",
-        "purpose"
-      ]
-    }
+    "emits": ["quality_policy", "quality_objectives"],
+    "consumes": ["company_legal_name", "qa_director_name"]
   },
-  "dependencies": [],
+  "dependencies": ["QP-005", "QF-002"],
   "output_config": {
     "page_size": "A4",
-    "header": "{company_legal_name} | QP-002 | Rev {revision_number}",
-    "footer": "CONFIDENTIAL \u2014 Controlled Document | ISO 13485:2016"
+    "header": "{company_legal_name} | QP-002 Quality Policy & Objectives | Rev {revision_number}",
+    "footer": "CONFIDENTIAL — Controlled Document | ISO 13485:2016"
   }
 }
