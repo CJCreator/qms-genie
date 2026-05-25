@@ -182,13 +182,13 @@ function ProjectPage() {
             <CardDescription>Used in every document header and approval block.</CardDescription>
           </CardHeader>
           <CardContent className="grid sm:grid-cols-2 gap-3">
-            <Field label="Legal name" v={org.legal_name} onChange={(v) => setOrg({ ...org, legal_name: v })} />
-            <Field label="Short name" v={org.short_name} onChange={(v) => setOrg({ ...org, short_name: v })} />
-            <Field label="Registered address" v={org.address} onChange={(v) => setOrg({ ...org, address: v })} />
-            <Field label="Target markets (EU, US, UK…)" v={Array.isArray(org.markets) ? org.markets.join(", ") : org.markets} onChange={(v) => setOrg({ ...org, markets: v.split(",").map((s: string) => s.trim()).filter(Boolean) })} />
-            <Field label="QA Manager name" v={org.qa_manager_name} onChange={(v) => setOrg({ ...org, qa_manager_name: v })} />
-            <Field label="QA Director name" v={org.qa_director_name} onChange={(v) => setOrg({ ...org, qa_director_name: v })} />
-            <Field label="Management representative" v={org.management_representative} onChange={(v) => setOrg({ ...org, management_representative: v })} />
+            <FormField label="Legal name" v={org.legal_name} onChange={(v) => setOrg({ ...org, legal_name: v })} />
+            <FormField label="Short name" v={org.short_name} onChange={(v) => setOrg({ ...org, short_name: v })} />
+            <FormField label="Registered address" v={org.address} onChange={(v) => setOrg({ ...org, address: v })} />
+            <FormField label="Target markets (EU, US, UK…)" v={Array.isArray(org.markets) ? org.markets.join(", ") : org.markets} onChange={(v) => setOrg({ ...org, markets: v.split(",").map((s: string) => s.trim()).filter(Boolean) })} />
+            <FormField label="QA Manager name" v={org.qa_manager_name} onChange={(v) => setOrg({ ...org, qa_manager_name: v })} />
+            <FormField label="QA Director name" v={org.qa_director_name} onChange={(v) => setOrg({ ...org, qa_director_name: v })} />
+            <FormField label="Management representative" v={org.management_representative} onChange={(v) => setOrg({ ...org, management_representative: v })} />
           </CardContent>
         </Card>
       )}
@@ -202,10 +202,10 @@ function ProjectPage() {
           <CardContent className="space-y-4">
             {devices.map((d, i) => (
               <div key={i} className="grid sm:grid-cols-2 gap-3 border rounded-md p-3">
-                <Field label="Device name" v={d.name} onChange={(v) => setDevices(devices.map((x, j) => j === i ? { ...x, name: v } : x))} />
-                <Field label="Model / version" v={d.model} onChange={(v) => setDevices(devices.map((x, j) => j === i ? { ...x, model: v } : x))} />
-                <Field label="Classification (Class I/IIa/IIb/III)" v={d.classification} onChange={(v) => setDevices(devices.map((x, j) => j === i ? { ...x, classification: v } : x))} />
-                <Field label="Device type (hardware/software/hims/combination)" v={d.type} onChange={(v) => setDevices(devices.map((x, j) => j === i ? { ...x, type: v } : x))} />
+                <FormField label="Device name" v={d.name} onChange={(v) => setDevices(devices.map((x, j) => j === i ? { ...x, name: v } : x))} />
+                <FormField label="Model / version" v={d.model} onChange={(v) => setDevices(devices.map((x, j) => j === i ? { ...x, model: v } : x))} />
+                <FormField label="Classification (Class I/IIa/IIb/III)" v={d.classification} onChange={(v) => setDevices(devices.map((x, j) => j === i ? { ...x, classification: v } : x))} />
+                <FormField label="Device type (hardware/software/hims/combination)" v={d.type} onChange={(v) => setDevices(devices.map((x, j) => j === i ? { ...x, type: v } : x))} />
                 <div className="sm:col-span-2">
                   <Label className="text-xs">Intended use</Label>
                   <Textarea value={d.intended_use || ""} onChange={(e) => setDevices(devices.map((x, j) => j === i ? { ...x, intended_use: e.target.value } : x))} />
@@ -632,7 +632,7 @@ function DocumentRepository({
   );
 }
 
-function Field({ label, v, onChange }: { label: string; v?: string; onChange: (v: string) => void }) {
+function FormField({ label, v, onChange }: { label: string; v?: string; onChange: (v: string) => void }) {
   return (
     <div>
       <Label className="text-xs">{label}</Label>
