@@ -199,81 +199,77 @@ function DocumentsPage() {
               const tpl = TEMPLATES_BY_CODE[code];
               const isOpen = !!expanded[code];
               return (
-                <Collapsible
-                  key={code}
-                  open={isOpen}
-                  onOpenChange={(v) => setExpanded((s) => ({ ...s, [code]: v }))}
-                  asChild
-                >
-                  <>
-                    <TableRow className="hover:bg-muted/40">
-                      <TableCell>
-                        <CollapsibleTrigger asChild>
-                          <Button size="icon" variant="ghost" className="h-6 w-6">
-                            {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                <Fragment key={code}>
+                  <TableRow className="hover:bg-muted/40">
+                    <TableCell>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6"
+                        onClick={() => setExpanded((s) => ({ ...s, [code]: !isOpen }))}
+                      >
+                        {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                      </Button>
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">{code}</TableCell>
+                    <TableCell className="font-medium">{tpl?.meta.document_name ?? latest.content?.name ?? code}</TableCell>
+                    <TableCell>
+                      <Badge className={STATUS_COLORS[latest.status] ?? ""} variant="secondary">{latest.status}</Badge>
+                    </TableCell>
+                    <TableCell>{versions.length}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{latest.project_name}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button size="sm" variant="ghost" onClick={() => download(latest.id)}>
+                          <Download className="h-4 w-4" />
+                        </Button>
+                        {latest.status !== "released" && (
+                          <Button size="sm" variant="ghost" title="Mark released"
+                            onClick={() => statusMut.mutate({ document_id: latest.id, status: "released" })}>
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
                           </Button>
-                        </CollapsibleTrigger>
-                      </TableCell>
-                      <TableCell className="font-mono text-xs">{code}</TableCell>
-                      <TableCell className="font-medium">{tpl?.meta.document_name ?? latest.content?.name ?? code}</TableCell>
-                      <TableCell>
-                        <Badge className={STATUS_COLORS[latest.status] ?? ""} variant="secondary">{latest.status}</Badge>
-                      </TableCell>
-                      <TableCell>{versions.length}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{latest.project_name}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button size="sm" variant="ghost" onClick={() => download(latest.id)}>
-                            <Download className="h-4 w-4" />
+                        )}
+                        {latest.status !== "obsolete" && (
+                          <Button size="sm" variant="ghost" title="Archive"
+                            onClick={() => archiveMut.mutate(latest.id)}>
+                            <Archive className="h-4 w-4 text-muted-foreground" />
                           </Button>
-                          {latest.status !== "released" && (
-                            <Button size="sm" variant="ghost" title="Mark released"
-                              onClick={() => statusMut.mutate({ document_id: latest.id, status: "released" })}>
-                              <CheckCircle2 className="h-4 w-4 text-green-600" />
-                            </Button>
-                          )}
-                          {latest.status !== "obsolete" && (
-                            <Button size="sm" variant="ghost" title="Archive"
-                              onClick={() => archiveMut.mutate(latest.id)}>
-                              <Archive className="h-4 w-4 text-muted-foreground" />
-                            </Button>
-                          )}
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                  {isOpen && (
+                    <TableRow className="bg-muted/30">
+                      <TableCell></TableCell>
+                      <TableCell colSpan={6}>
+                        <div className="text-xs font-medium mb-2 text-muted-foreground">Version history</div>
+                        <div className="space-y-1">
+                          {versions.map((v: any) => (
+                            <div key={v.id} className="flex items-center justify-between text-sm border-b last:border-0 py-1">
+                              <div className="flex items-center gap-3">
+                                <span className="font-mono text-xs">v{v.version ?? "?"}</span>
+                                <Badge className={STATUS_COLORS[v.status] ?? ""} variant="secondary">{v.status}</Badge>
+                                <span className="text-muted-foreground">{new Date(v.created_at).toLocaleString()}</span>
+                                <Link
+                                  to="/projects/$id"
+                                  params={{ id: v.project_id }}
+                                  className="text-xs text-primary hover:underline"
+                                >
+                                  {v.project_name}
+                                </Link>
+                              </div>
+                              <div className="flex gap-1">
+                                <Button size="sm" variant="ghost" onClick={() => download(v.id)}>
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </TableCell>
                     </TableRow>
-                    <CollapsibleContent asChild>
-                      <TableRow className="bg-muted/30">
-                        <TableCell></TableCell>
-                        <TableCell colSpan={6}>
-                          <div className="text-xs font-medium mb-2 text-muted-foreground">Version history</div>
-                          <div className="space-y-1">
-                            {versions.map((v: any) => (
-                              <div key={v.id} className="flex items-center justify-between text-sm border-b last:border-0 py-1">
-                                <div className="flex items-center gap-3">
-                                  <span className="font-mono text-xs">v{v.version ?? "?"}</span>
-                                  <Badge className={STATUS_COLORS[v.status] ?? ""} variant="secondary">{v.status}</Badge>
-                                  <span className="text-muted-foreground">{new Date(v.created_at).toLocaleString()}</span>
-                                  <Link
-                                    to="/projects/$id"
-                                    params={{ id: v.project_id }}
-                                    className="text-xs text-primary hover:underline"
-                                  >
-                                    {v.project_name}
-                                  </Link>
-                                </div>
-                                <div className="flex gap-1">
-                                  <Button size="sm" variant="ghost" onClick={() => download(v.id)}>
-                                    <Download className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    </CollapsibleContent>
-                  </>
-                </Collapsible>
+                  )}
+                </Fragment>
               );
             })}
           </TableBody>
