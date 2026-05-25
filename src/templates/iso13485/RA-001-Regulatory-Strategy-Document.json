@@ -3,111 +3,84 @@
     "document_code": "RA-001",
     "document_name": "Regulatory Strategy Document",
     "department": "RA",
-    "iso_clauses": [
-      "4.1",
-      "7.2"
-    ],
-    "default_prepared_by_role": "RA Lead",
+    "iso_clauses": ["7.2.1", "4.1.1"],
+    "default_prepared_by_role": "Regulatory Affairs Manager",
     "default_approved_by_role": "QA Director",
     "retention_period": "Life of device + 10 years",
-    "applicable_device_types": [
-      "hardware",
-      "software",
-      "hims",
-      "combination"
-    ],
-    "applicable_markets": [
-      "EU",
-      "US",
-      "UK",
-      "global"
-    ]
+    "applicable_device_types": ["hardware", "software", "hims", "combination"],
+    "applicable_markets": ["EU", "US", "UK", "global"]
   },
   "inputs": [
-    {
-      "id": "company_legal_name",
-      "label": "Company Legal Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    },
-    {
-      "id": "device_name_model",
-      "label": "Device Name & Model",
-      "type": "text",
-      "required": true,
-      "source": "device_record"
-    },
-    {
-      "id": "qa_manager_name",
-      "label": "QA Manager Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    }
+    { "id": "company_legal_name", "label": "Company Legal Name", "type": "text", "required": true, "source": "company_profile" },
+    { "id": "device_name_model", "label": "Device Name & Model", "type": "text", "required": true, "source": "device_record" },
+    { "id": "intended_use", "label": "Intended Use", "type": "text", "required": true, "source": "device_record" },
+    { "id": "target_markets", "label": "Target Markets", "type": "text", "required": true, "source": "company_profile" }
   ],
   "sections": [
+    { "id": "header", "title": "", "type": "static", "content": "Regulatory Strategy\nDocument Code: RA-001\nRevision: {revision_number}\nDevice: {device_name_model}" },
+    { "id": "purpose", "title": "1. Purpose", "type": "ai_generated", "section_prompt": "State that this document defines the regulatory pathway and roadmap for {device_name_model} across {target_markets}. Drives technical file {ref:RA-002}, submissions log {ref:RA-004}, and PMS plan {ref:RA-005}." },
+    { "id": "device_description", "title": "2. Device Description & Intended Use", "type": "variable", "content": "Device: {device_name_model}\nIntended Use: {intended_use}\nTarget Markets: {target_markets}" },
     {
-      "id": "header",
-      "title": "",
-      "type": "static",
-      "content": "ISO 13485:2016\nRegulatory Strategy Document\nDocument Code: RA-001\nRevision: {revision_number}"
+      "id": "classification",
+      "title": "3. Classification per Market",
+      "type": "table_spec",
+      "columns": [
+        { "key": "market", "label": "Market", "width": 1500 },
+        { "key": "regulation", "label": "Regulation", "width": 2200 },
+        { "key": "rule", "label": "Classification Rule", "width": 2200 },
+        { "key": "class", "label": "Class", "width": 1100 },
+        { "key": "pathway", "label": "Pathway", "width": 3560 }
+      ],
+      "ai_rows_prompt": "For each of {target_markets} provide classification (EU MDR Annex VIII rule, FDA 21 CFR 862\u2013892 product code + class I/II/III, UK MDR 2002, Health Canada, TGA, PMDA) and the conformity-assessment/submission pathway (e.g. EU MDR Annex IX Notified Body, FDA 510(k) / De Novo / PMA, UKCA Approved Body). Return JSON array."
     },
     {
-      "id": "purpose",
-      "title": "1. Purpose",
+      "id": "strategy_principles",
+      "title": "4. Strategy Principles",
+      "type": "clause_block",
+      "clauses": [
+        "4.1 Predicate / equivalence analysis",
+        "4.2 Standards strategy (harmonised / consensus standards adopted)",
+        "4.3 Clinical evidence strategy (existing data, equivalence, new investigation, PMCF)",
+        "4.4 Cybersecurity and software documentation strategy",
+        "4.5 Authorised Representative / US Agent / UK Responsible Person",
+        "4.6 Sequencing and submission timing across markets"
+      ],
+      "section_prompt": "For each principle, describe the approach for {device_name_model} in 2\u20133 sentences."
+    },
+    {
+      "id": "submission_roadmap",
+      "title": "5. Submission Roadmap",
+      "type": "table_spec",
+      "columns": [
+        { "key": "market", "label": "Market", "width": 1400 },
+        { "key": "milestone", "label": "Milestone", "width": 2800 },
+        { "key": "responsible", "label": "Responsible", "width": 1800 },
+        { "key": "target_date", "label": "Target Date", "width": 1600 },
+        { "key": "dependencies", "label": "Key Dependencies", "width": 2960 }
+      ],
+      "ai_rows_prompt": "Generate 8\u201312 milestones (pre-submission meeting, technical file freeze, NB application, audit stage 1/2, response to deficiencies, CE certificate, FDA 510(k) submission, AI/Substantive review, clearance, market launch). Dependencies cite documents like {ref:RA-002}, {ref:RD-006}, {ref:CA-001}. Return JSON array."
+    },
+    {
+      "id": "post_market",
+      "title": "6. Post-Market Strategy",
       "type": "ai_generated",
-      "section_prompt": "Draft a clear, regulatory-compliant purpose statement for the Regulatory Strategy Document document under ISO 13485:2016 for a medical device company.",
-      "editable": true
+      "section_prompt": "Outline how PMS plan {ref:RA-005}, PSUR/PMCF {ref:RA-006}, vigilance {ref:CA-005}, and FSCA {ref:CA-006} maintain market access after launch."
     },
-    {
-      "id": "scope",
-      "title": "2. Scope",
-      "type": "variable",
-      "content": "This document establishes the regulatory strategy document for {company_legal_name} and applies to all relevant QMS processes."
-    },
-    {
-      "id": "responsibilities",
-      "title": "3. Responsibilities",
-      "type": "static",
-      "content": "Prepared by: {default_prepared_by_role}\nApproved by: {default_approved_by_role}"
-    },
-    {
-      "id": "approval_block",
-      "title": "",
-      "type": "approval_block"
-    },
-    {
-      "id": "revision_history",
-      "title": "Revision History",
-      "type": "table",
-      "table_source": "revision_history"
-    }
+    { "id": "approval_block", "title": "", "type": "approval_block" },
+    { "id": "revision_history", "title": "Revision History", "type": "table", "table_source": "revision_history" }
   ],
   "validation_rules": {
-    "emits": [
-      "ra-001_approval",
-      "role_names"
-    ],
-    "consumes": [
-      "qa_manager_role_name",
-      "company_legal_name"
-    ],
+    "emits": ["regulatory_strategy_baseline", "classification"],
+    "consumes": ["device_name_model", "intended_use", "target_markets"],
     "required_sections_for_markets": {
-      "EU": [
-        "scope",
-        "purpose"
-      ],
-      "US": [
-        "scope",
-        "purpose"
-      ]
+      "EU": ["classification", "submission_roadmap"],
+      "US": ["classification", "submission_roadmap"]
     }
   },
-  "dependencies": [],
+  "dependencies": ["QP-006"],
   "output_config": {
     "page_size": "A4",
-    "header": "{company_legal_name} | RA-001 | Rev {revision_number}",
-    "footer": "CONFIDENTIAL \u2014 Controlled Document | ISO 13485:2016"
+    "header": "{company_legal_name} | RA-001 Regulatory Strategy | {device_name_model} | Rev {revision_number}",
+    "footer": "CONFIDENTIAL \u2014 Controlled Document"
   }
 }

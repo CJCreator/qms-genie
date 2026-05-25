@@ -3,110 +3,83 @@
     "document_code": "RA-006",
     "document_name": "Periodic Safety Update Report (PSUR) / PMCF Report",
     "department": "RA",
-    "iso_clauses": [
-      "8.2.1"
-    ],
-    "default_prepared_by_role": "RA Lead",
+    "iso_clauses": ["8.2.1"],
+    "default_prepared_by_role": "Regulatory Affairs Manager",
     "default_approved_by_role": "QA Director",
     "retention_period": "Life of device + 10 years",
-    "applicable_device_types": [
-      "hardware",
-      "software",
-      "hims",
-      "combination"
-    ],
-    "applicable_markets": [
-      "EU",
-      "US",
-      "UK",
-      "global"
-    ]
+    "applicable_device_types": ["hardware", "software", "hims", "combination"],
+    "applicable_markets": ["EU", "US", "UK", "global"]
   },
   "inputs": [
-    {
-      "id": "company_legal_name",
-      "label": "Company Legal Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    },
-    {
-      "id": "device_name_model",
-      "label": "Device Name & Model",
-      "type": "text",
-      "required": true,
-      "source": "device_record"
-    },
-    {
-      "id": "qa_manager_name",
-      "label": "QA Manager Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    }
+    { "id": "company_legal_name", "label": "Company Legal Name", "type": "text", "required": true, "source": "company_profile" },
+    { "id": "device_name_model", "label": "Device Name & Model", "type": "text", "required": true, "source": "device_record" }
   ],
   "sections": [
+    { "id": "header", "title": "", "type": "static", "content": "PSUR / PMCF Evaluation Report (EU MDR Articles 85\u201386, Annex XIV Part B)\nDocument Code: RA-006\nRevision: {revision_number}\nDevice: {device_name_model}" },
+    { "id": "purpose", "title": "1. Purpose", "type": "ai_generated", "section_prompt": "State that this PSUR consolidates post-market data for {device_name_model} during the reporting period per EU MDR Article 86 (class IIa: at least every 2 years; class IIb/III: annually), updating benefit-risk and feeding {ref:RD-007} and {ref:RA-002}." },
     {
-      "id": "header",
-      "title": "",
-      "type": "static",
-      "content": "ISO 13485:2016\nPeriodic Safety Update Report (PSUR) / PMCF Report\nDocument Code: RA-006\nRevision: {revision_number}"
+      "id": "period",
+      "title": "2. Reporting Period & Scope",
+      "type": "table_spec",
+      "columns": [ { "key": "field", "label": "Field", "width": 3200 }, { "key": "value", "label": "Value", "width": 7360 } ],
+      "rows": [
+        { "field": "Reporting Period Start", "value": "" },
+        { "field": "Reporting Period End", "value": "" },
+        { "field": "Devices in Scope (SKUs / UDI-DIs)", "value": "" },
+        { "field": "Total Units Distributed (period)", "value": "" },
+        { "field": "Total Units Distributed (cumulative)", "value": "" }
+      ]
     },
     {
-      "id": "purpose",
-      "title": "1. Purpose",
+      "id": "summary_data",
+      "title": "3. Quantitative Summary",
+      "type": "table_spec",
+      "columns": [
+        { "key": "metric", "label": "Metric", "width": 3000 },
+        { "key": "period", "label": "Period Value", "width": 2400 },
+        { "key": "cumulative", "label": "Cumulative", "width": 2400 },
+        { "key": "threshold", "label": "Threshold", "width": 2160 }
+      ],
+      "ai_rows_prompt": "Generate metrics: total complaints, complaint rate per 1000 units, serious incidents (vigilance), FSCA initiated, returns rate, top 5 failure modes, software defects critical, cybersecurity incidents. Threshold from {ref:RA-005}. Return JSON array."
+    },
+    {
+      "id": "qualitative",
+      "title": "4. Qualitative Analysis",
       "type": "ai_generated",
-      "section_prompt": "Draft a clear, regulatory-compliant purpose statement for the Periodic Safety Update Report (PSUR) / PMCF Report document under ISO 13485:2016 for a medical device company.",
-      "editable": true
+      "section_prompt": "Provide narrative analysis: trend interpretation, comparison to previous period, root causes of any signal, conclusions on benefit-risk for {device_name_model}, and any updates required to risk file {ref:RD-007} or IFU {ref:RA-007}."
     },
     {
-      "id": "scope",
-      "title": "2. Scope",
-      "type": "variable",
-      "content": "This document establishes the periodic safety update report (psur) / pmcf report for {company_legal_name} and applies to all relevant QMS processes."
+      "id": "pmcf",
+      "title": "5. PMCF Activities & Findings",
+      "type": "ai_generated",
+      "section_prompt": "Summarise PMCF activities executed during the period (registries, surveys, literature, real-world studies) and findings. State whether the clinical evaluation needs to be updated."
     },
     {
-      "id": "responsibilities",
-      "title": "3. Responsibilities",
-      "type": "static",
-      "content": "Prepared by: {default_prepared_by_role}\nApproved by: {default_approved_by_role}"
+      "id": "conclusions",
+      "title": "6. Conclusions & Actions",
+      "type": "table_spec",
+      "columns": [
+        { "key": "conclusion", "label": "Conclusion", "width": 4800 },
+        { "key": "action", "label": "Required Action", "width": 3600 },
+        { "key": "owner", "label": "Owner", "width": 1200 },
+        { "key": "due", "label": "Due", "width": 960 }
+      ],
+      "ai_rows_prompt": "Generate 4\u20136 conclusion/action rows. Actions reference CAPA ({ref:CA-001}), FSCA ({ref:CA-006}), risk update ({ref:RD-007}), labelling change ({ref:RA-007}), or no action required. Return JSON array."
     },
-    {
-      "id": "approval_block",
-      "title": "",
-      "type": "approval_block"
-    },
-    {
-      "id": "revision_history",
-      "title": "Revision History",
-      "type": "table",
-      "table_source": "revision_history"
-    }
+    { "id": "approval_block", "title": "", "type": "approval_block" },
+    { "id": "revision_history", "title": "Revision History", "type": "table", "table_source": "revision_history" }
   ],
   "validation_rules": {
-    "emits": [
-      "ra-006_approval",
-      "role_names"
-    ],
-    "consumes": [
-      "qa_manager_role_name",
-      "company_legal_name"
-    ],
+    "emits": ["psur_record"],
+    "consumes": ["pms_plan_baseline", "device_name_model"],
     "required_sections_for_markets": {
-      "EU": [
-        "scope",
-        "purpose"
-      ],
-      "US": [
-        "scope",
-        "purpose"
-      ]
+      "EU": ["period", "summary_data", "qualitative", "conclusions"]
     }
   },
-  "dependencies": [],
+  "dependencies": ["RA-005", "RD-007"],
   "output_config": {
     "page_size": "A4",
-    "header": "{company_legal_name} | RA-006 | Rev {revision_number}",
-    "footer": "CONFIDENTIAL \u2014 Controlled Document | ISO 13485:2016"
+    "header": "{company_legal_name} | RA-006 PSUR | {device_name_model} | Rev {revision_number}",
+    "footer": "CONFIDENTIAL \u2014 Controlled Record | EU MDR Art. 86"
   }
 }
