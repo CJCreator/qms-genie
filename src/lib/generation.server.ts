@@ -838,13 +838,49 @@ export async function generateBundle(
       })),
     };
   }
+
+  // Capture every {ref:CODE} reference each rendered doc makes BEFORE rewrite,
+  // so we can run cross-document consistency rules in Pass 2.5.
+  const refsByDoc: Record<string, Set<string>> = {};
+  for (const r of renderedDocs) {
+    const refs = new Set<string>();
+    const scan = (text: string) => {
+      const re = /\{ref:([A-Z]{2}-\d{3})(?:#[a-zA-Z0-9_-]+)?\}/g;
+      let m: RegExpExecArray | null;
+      while ((m = re.exec(text))) refs.add(m[1]);
+    };
+    for (const s of r.sections) {
+      scan(s.text);
+      const rows = (s.payload?.rows ?? []) as Record<string, string>[];
+      for (const row of rows) for (const v of Object.values(row)) scan(String(v ?? ""));
+    }
+    refsByDoc[r.code] = refs;
+  }
+
   for (const r of renderedDocs) {
     r.sections = r.sections.map((s) => ({
       section: s.section,
       text: rewriteCrossRefs(s.text, registry, vars),
-      payload: s.payload,
+      payload: s.payload
+        ? {
+            ...s.payload,
+            rows: ((s.payload.rows ?? []) as Record<string, string>[]).map((row) => {
+              const o: Record<string, string> = {};
+              for (const k of Object.keys(row))
+                o[k] = rewriteCrossRefs(String(row[k] ?? ""), registry, vars);
+              return o;
+            }),
+          }
+        : s.payload,
     }));
   }
+
+  // ---- Pass 2.5: cross-document consistency checks -----------------------
+  const crossFindings = validateCrossDocumentConsistency(
+    renderedDocs.map((r) => ({ code: r.code, sections: r.sections })),
+    refsByDoc,
+    selectedSet,
+  );
 
   // ---- Build .docx per document ------------------------------------------
   const entries: {
@@ -871,8 +907,25 @@ export async function generateBundle(
   }
   entries.sort((a, b) => a.code.localeCompare(b.code));
 
-  // Carry through non-blocking pre-render findings (warnings/info) into the run.
-  const findings = preFindings.filter((f) => f.severity !== "error");
+  // Master-index coverage check: every code referenced by any doc must appear
+  // in the final entries list (i.e. the rendered+packaged master index).
+  const indexCodes = new Set(entries.map((e) => e.code));
+  for (const [doc, refs] of Object.entries(refsByDoc)) {
+    for (const ref of refs) {
+      if (!indexCodes.has(ref)) {
+        crossFindings.push({
+          document_code: doc,
+          severity: "error",
+          field: "master_index",
+          message: `${doc} references ${ref} but ${ref} is not present in the master document index (00_Master_Index.xlsx).`,
+        });
+      }
+    }
+  }
+
+  // Carry through non-blocking pre-render findings (warnings/info) into the run,
+  // plus the cross-document consistency findings.
+  const findings = [...preFindings.filter((f) => f.severity !== "error"), ...crossFindings];
 
   // master index workbook (index + traceability + validation)
   const wb = new ExcelJS.Workbook();
