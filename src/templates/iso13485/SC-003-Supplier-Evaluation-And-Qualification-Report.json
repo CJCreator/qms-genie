@@ -3,110 +3,103 @@
     "document_code": "SC-003",
     "document_name": "Supplier Evaluation & Qualification Report",
     "department": "SCM",
-    "iso_clauses": [
-      "7.4"
-    ],
+    "iso_clauses": ["7.4.1", "7.4.2"],
     "default_prepared_by_role": "SCM Lead",
     "default_approved_by_role": "QA Director",
     "retention_period": "Life of device + 10 years",
-    "applicable_device_types": [
-      "hardware",
-      "software",
-      "hims",
-      "combination"
-    ],
-    "applicable_markets": [
-      "EU",
-      "US",
-      "UK",
-      "global"
-    ]
+    "applicable_device_types": ["hardware", "software", "hims", "combination"],
+    "applicable_markets": ["EU", "US", "UK", "global"]
   },
   "inputs": [
-    {
-      "id": "company_legal_name",
-      "label": "Company Legal Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    },
-    {
-      "id": "device_name_model",
-      "label": "Device Name & Model",
-      "type": "text",
-      "required": true,
-      "source": "device_record"
-    },
-    {
-      "id": "qa_manager_name",
-      "label": "QA Manager Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    }
+    { "id": "company_legal_name", "label": "Company Legal Name", "type": "text", "required": true, "source": "company_profile" },
+    { "id": "qa_manager_name", "label": "QA Manager Name", "type": "text", "required": true, "source": "company_profile" },
+    { "id": "device_name_model", "label": "Device Name & Model", "type": "text", "required": true, "source": "device_record" }
   ],
   "sections": [
+    { "id": "header", "title": "", "type": "static", "content": "ISO 13485:2016 \u00a77.4.1/\u00a77.4.2 \u2014 Supplier Evaluation & Qualification Report\nDocument Code: SC-003\nRevision: {revision_number}" },
+    { "id": "purpose", "title": "1. Purpose", "type": "ai_generated", "section_prompt": "State that this report records the evaluation, scoring, and qualification decision for an individual supplier per procedure {ref:SC-002}, and feeds the Approved Supplier List {ref:SC-001} and monitoring record {ref:SC-005}." },
+    { "id": "scope", "title": "2. Supplier Identification", "type": "variable", "content": "Evaluation conducted by {company_legal_name} for supplier of components / services associated with {device_name_model}. Classification (Critical/Major/Minor) is established per {ref:SC-002} \u00a73." },
     {
-      "id": "header",
-      "title": "",
-      "type": "static",
-      "content": "ISO 13485:2016\nSupplier Evaluation & Qualification Report\nDocument Code: SC-003\nRevision: {revision_number}"
+      "id": "supplier_profile",
+      "title": "3. Supplier Profile",
+      "type": "table_spec",
+      "columns": [
+        { "key": "field", "label": "Attribute", "width": 3000 },
+        { "key": "value", "label": "Value", "width": 6360 }
+      ],
+      "ai_rows_prompt": "Generate ~14 profile attributes with placeholder values for a typical critical medical-device supplier: Legal name, Trading name, Address & site(s), Country, Tax/Reg ID, Contact (name/role/email), QMS certification (ISO 13485 cert #, issuer, expiry), Other certs (ISO 9001, ISO 14971, IEC 62304, SOC 2), Regulatory registrations (FDA Establishment #, EU Authorised Rep), MDSAP status, Products/services supplied, Sub-tier supplier disclosure, Years in business, Financial stability source. Return JSON array."
     },
     {
-      "id": "purpose",
-      "title": "1. Purpose",
+      "id": "scoring",
+      "title": "4. Weighted Scoring Against SC-002 Criteria",
+      "type": "table_spec",
+      "columns": [
+        { "key": "criterion", "label": "Criterion (from SC-002)", "width": 2800 },
+        { "key": "weight", "label": "Weight %", "width": 900 },
+        { "key": "score", "label": "Score 0\u20135", "width": 900 },
+        { "key": "weighted", "label": "Weighted", "width": 900 },
+        { "key": "evidence_ref", "label": "Evidence / Doc Ref", "width": 3860 }
+      ],
+      "ai_rows_prompt": "Generate exactly the same criteria set defined in {ref:SC-002} \u00a74 (QMS cert, regulatory status, technical capability, capacity, financial, OTD, quality PPM, change-notification, sub-tier control, cybersecurity, RoHS/REACH, BCP). Provide plausible scores (0\u20135), compute weighted = weight * score / 5, and reference evidence (e.g. \"Cert #ISO13485-XXXX\", \"SAQ Rev A\", \"Audit Report {ref:SC-007}\"). Add a final TOTAL row with sum of weighted scores against 100. Return JSON array."
+    },
+    {
+      "id": "audit_findings",
+      "title": "5. Audit Findings (if applicable)",
+      "type": "table_spec",
+      "columns": [
+        { "key": "finding_id", "label": "Finding ID", "width": 1200 },
+        { "key": "clause", "label": "ISO Clause", "width": 1200 },
+        { "key": "severity", "label": "Severity", "width": 1200 },
+        { "key": "description", "label": "Description", "width": 3360 },
+        { "key": "scar_capa", "label": "SCAR / CAPA Link", "width": 2400 }
+      ],
+      "ai_rows_prompt": "Generate 3\u20135 example findings from a supplier audit conducted under {ref:SC-007}. Severity = Minor/Major/Critical. Each Major or Critical finding MUST list a SCAR id and link to CAPA, e.g. \"SCAR-2025-007 \u2192 {ref:CA-001}\u2009/\u2009{ref:CA-002}\". Minor findings may reference observation tracker. Return JSON array."
+    },
+    {
+      "id": "risk_assessment",
+      "title": "6. Supply-Chain Risk Assessment",
       "type": "ai_generated",
-      "section_prompt": "Draft a clear, regulatory-compliant purpose statement for the Supplier Evaluation & Qualification Report document under ISO 13485:2016 for a medical device company.",
-      "editable": true
+      "section_prompt": "Summarise risks identified (single-source, geopolitical, cybersecurity, sub-tier opacity, capacity, regulatory) and mitigations. Cross-reference risk controls in {ref:RD-007} where supplier failure could affect device safety/performance. State residual risk acceptability."
     },
     {
-      "id": "scope",
-      "title": "2. Scope",
-      "type": "variable",
-      "content": "This document establishes the supplier evaluation & qualification report for {company_legal_name} and applies to all relevant QMS processes."
+      "id": "decision",
+      "title": "7. Qualification Decision",
+      "type": "clause_block",
+      "clauses": [
+        "7.1 Decision: Approved / Approved with conditions / Rejected",
+        "7.2 Approval scope (products/services, sites, max order value)",
+        "7.3 Conditions & required CAPAs \u2014 each linked to {ref:CA-001} / {ref:CA-002}",
+        "7.4 Next re-evaluation date (per SC-002 \u00a76 frequency)",
+        "7.5 Entry into Approved Supplier List {ref:SC-001}",
+        "7.6 Initial scorecard baseline established in {ref:SC-005}"
+      ],
+      "section_prompt": "For each clause, write the actual decision text in passive/declarative form suitable for an auditable record. Make explicit which CAPAs gate conditional approval."
     },
     {
-      "id": "responsibilities",
-      "title": "3. Responsibilities",
-      "type": "static",
-      "content": "Prepared by: {default_prepared_by_role}\nApproved by: {default_approved_by_role}"
+      "id": "traceability",
+      "title": "8. Traceability Matrix",
+      "type": "table_spec",
+      "columns": [
+        { "key": "item", "label": "Item", "width": 3000 },
+        { "key": "ref", "label": "Linked Document", "width": 6360 }
+      ],
+      "ai_rows_prompt": "Generate fixed traceability rows mapping: Qualification procedure \u2192 {ref:SC-002}; Approved Supplier List \u2192 {ref:SC-001}; Monitoring scorecard \u2192 {ref:SC-005}; Audit report \u2192 {ref:SC-007}; SCAR register \u2192 {ref:SC-006}; CAPA \u2192 {ref:CA-001}; CAPA form \u2192 {ref:CA-002}; NCR \u2192 {ref:CA-007}; Risk file \u2192 {ref:RD-007}; Change assessment \u2192 {ref:RA-008}; Quality Manual \u2192 {ref:QP-001}. Return JSON array."
     },
-    {
-      "id": "approval_block",
-      "title": "",
-      "type": "approval_block"
-    },
-    {
-      "id": "revision_history",
-      "title": "Revision History",
-      "type": "table",
-      "table_source": "revision_history"
-    }
+    { "id": "approval_block", "title": "", "type": "approval_block" },
+    { "id": "revision_history", "title": "Revision History", "type": "table", "table_source": "revision_history" }
   ],
   "validation_rules": {
-    "emits": [
-      "sc-003_approval",
-      "role_names"
-    ],
-    "consumes": [
-      "qa_manager_role_name",
-      "company_legal_name"
-    ],
+    "emits": ["supplier_qualification_record"],
+    "consumes": ["supplier_qualification_baseline", "supplier_classification_scheme"],
     "required_sections_for_markets": {
-      "EU": [
-        "scope",
-        "purpose"
-      ],
-      "US": [
-        "scope",
-        "purpose"
-      ]
+      "EU": ["scoring", "audit_findings", "decision", "traceability"],
+      "US": ["scoring", "audit_findings", "decision", "traceability"]
     }
   },
-  "dependencies": [],
+  "dependencies": ["SC-001", "SC-002", "SC-005", "SC-006", "SC-007", "CA-001", "CA-002", "CA-007", "RD-007", "RA-008"],
   "output_config": {
     "page_size": "A4",
-    "header": "{company_legal_name} | SC-003 | Rev {revision_number}",
-    "footer": "CONFIDENTIAL \u2014 Controlled Document | ISO 13485:2016"
+    "header": "{company_legal_name} | SC-003 Supplier Evaluation & Qualification Report | Rev {revision_number}",
+    "footer": "CONFIDENTIAL \u2014 Controlled Document | ISO 13485:2016 \u00a77.4.1"
   }
 }
