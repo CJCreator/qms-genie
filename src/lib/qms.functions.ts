@@ -518,8 +518,8 @@ export const listWorkspaceMembers = createServerFn({ method: "POST" })
     if (membersErr) throw new Error(membersErr.message);
 
     const userIds = (members ?? []).map((m: any) => m.user_id);
-    const { data: users, error: usersErr } = await supabaseAdmin
-      .from<any>("auth.users")
+    const { data: users, error: usersErr } = await (supabaseAdmin as any)
+      .from("auth.users")
       .select("id, email")
       .in("id", userIds);
     if (usersErr) throw new Error(usersErr.message);
@@ -601,12 +601,12 @@ export const inviteMember = createServerFn({ method: "POST" })
       throw new Error("Only workspace owners or admins can invite members.");
     }
 
-    const { data: users, error: usersErr } = await supabaseAdmin
-      .from<any>("auth.users")
+    const { data: users, error: usersErr } = await (supabaseAdmin as any)
+      .from("auth.users")
       .select("id, email")
       .eq("email", data.email);
     if (usersErr) throw new Error(usersErr.message);
-    const user = Array.isArray(users) ? users[0] : undefined;
+    const user: { id: string; email: string } | undefined = Array.isArray(users) ? users[0] : undefined;
     if (!user) {
       throw new Error(`No existing account found for ${data.email}. Invitees must sign up first.`);
     }
