@@ -210,7 +210,7 @@ function AuthLayout() {
                             size="sm"
                             variant="destructive"
                             onClick={() => removeMutation.mutate(member.user_id)}
-                            disabled={removeMutation.isLoading}
+                            disabled={removeMutation.isPending}
                           >
                             Remove
                           </Button>
@@ -271,7 +271,7 @@ function AuthLayout() {
                 </div>
                 <DialogFooter>
                   <Button
-                    disabled={!inviteEmail || inviteMutation.isLoading || !workspaceId}
+                    disabled={!inviteEmail || inviteMutation.isPending || !workspaceId}
                     onClick={() => inviteMutation.mutate()}
                   >
                     Send invite

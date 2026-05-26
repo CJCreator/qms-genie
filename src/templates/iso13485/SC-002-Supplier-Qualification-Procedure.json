@@ -3,110 +3,112 @@
     "document_code": "SC-002",
     "document_name": "Supplier Qualification Procedure",
     "department": "SCM",
-    "iso_clauses": [
-      "7.4"
-    ],
+    "iso_clauses": ["7.4.1", "7.4.2", "7.4.3"],
     "default_prepared_by_role": "SCM Lead",
     "default_approved_by_role": "QA Director",
     "retention_period": "Life of device + 10 years",
-    "applicable_device_types": [
-      "hardware",
-      "software",
-      "hims",
-      "combination"
-    ],
-    "applicable_markets": [
-      "EU",
-      "US",
-      "UK",
-      "global"
-    ]
+    "applicable_device_types": ["hardware", "software", "hims", "combination"],
+    "applicable_markets": ["EU", "US", "UK", "global"]
   },
   "inputs": [
-    {
-      "id": "company_legal_name",
-      "label": "Company Legal Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    },
-    {
-      "id": "device_name_model",
-      "label": "Device Name & Model",
-      "type": "text",
-      "required": true,
-      "source": "device_record"
-    },
-    {
-      "id": "qa_manager_name",
-      "label": "QA Manager Name",
-      "type": "text",
-      "required": true,
-      "source": "company_profile"
-    }
+    { "id": "company_legal_name", "label": "Company Legal Name", "type": "text", "required": true, "source": "company_profile" },
+    { "id": "qa_manager_name", "label": "QA Manager Name", "type": "text", "required": true, "source": "company_profile" },
+    { "id": "scm_lead_name", "label": "SCM Lead Name", "type": "text", "required": false, "source": "company_profile" }
   ],
   "sections": [
+    { "id": "header", "title": "", "type": "static", "content": "ISO 13485:2016 \u00a77.4 \u2014 Supplier Qualification Procedure\nDocument Code: SC-002\nRevision: {revision_number}" },
+    { "id": "purpose", "title": "1. Purpose", "type": "ai_generated", "section_prompt": "State that this procedure defines how {company_legal_name} evaluates, selects, qualifies, re-evaluates, and (if needed) disqualifies suppliers of products and services that affect medical device quality, per ISO 13485:2016 \u00a77.4.1 and 21 CFR 820.50. Reference the Approved Supplier List {ref:SC-001}, evaluation report {ref:SC-003}, monitoring {ref:SC-005}, and SCAR process {ref:SC-006}." },
+    { "id": "scope", "title": "2. Scope", "type": "variable", "content": "Applies to all external providers of materials, components, sterile services, contract manufacturing, calibration, software (incl. SOUP), and consultancy that impact conformity to product requirements at {company_legal_name}. Excludes office supplies and other non-quality-impacting purchases." },
     {
-      "id": "header",
-      "title": "",
-      "type": "static",
-      "content": "ISO 13485:2016\nSupplier Qualification Procedure\nDocument Code: SC-002\nRevision: {revision_number}"
+      "id": "classification",
+      "title": "3. Supplier Classification (Criticality)",
+      "type": "clause_block",
+      "clauses": [
+        "3.1 Critical \u2014 supplies direct product, sterile service, software/SOUP, or service whose failure can affect safety/performance or regulatory conformity",
+        "3.2 Major \u2014 supplies indirect product or service affecting QMS outputs (e.g. calibration, validated IT)",
+        "3.3 Minor \u2014 supplies items with no direct impact on product quality or QMS records"
+      ],
+      "section_prompt": "For each class, define qualification depth (questionnaire only / questionnaire + audit / on-site audit) and re-evaluation frequency. Cross-reference risk file {ref:RD-007} for risk-based controls on critical suppliers."
     },
     {
-      "id": "purpose",
-      "title": "1. Purpose",
+      "id": "assessment_criteria",
+      "title": "4. Assessment Criteria Matrix",
+      "type": "table_spec",
+      "columns": [
+        { "key": "criterion", "label": "Criterion", "width": 2600 },
+        { "key": "evidence", "label": "Evidence Required", "width": 3400 },
+        { "key": "weight", "label": "Weight %", "width": 900 },
+        { "key": "min_score", "label": "Min Pass", "width": 900 },
+        { "key": "applies_to", "label": "Applies To Class", "width": 1560 }
+      ],
+      "ai_rows_prompt": "Generate 10\u201312 weighted assessment criteria covering: QMS certification (ISO 13485/9001), regulatory status (FDA registration, CE, MDSAP), technical capability, capacity, financial stability, on-time delivery history, quality history (PPM/RMA), change-notification practice, sub-tier control, cybersecurity posture (for software/SOUP), conflict minerals / REACH / RoHS, business continuity. Weights must sum to 100. Return JSON array."
+    },
+    {
+      "id": "qualification_process",
+      "title": "5. Qualification Process",
+      "type": "clause_block",
+      "clauses": [
+        "5.1 Need identification & supplier sourcing",
+        "5.2 Supplier self-assessment questionnaire (SAQ) issuance",
+        "5.3 Documentation review (certificates, regulatory licences, financials)",
+        "5.4 Risk-based audit decision \u2014 desk audit, remote audit, or on-site per {ref:SC-007}",
+        "5.5 Sample / first-article evaluation for critical components",
+        "5.6 Quality Agreement and Purchase Controls established",
+        "5.7 Approval by QA Director ({qa_manager_name}) and entry into {ref:SC-001}",
+        "5.8 Conditional approval pathway (with mandatory CAPA per {ref:CA-001})"
+      ],
+      "section_prompt": "For each step, define inputs, outputs, responsible role, and timeline. Make clear that critical suppliers cannot be released for first PO until 5.5 and 5.6 are complete."
+    },
+    {
+      "id": "audit_triggers",
+      "title": "6. Audit & Re-evaluation Triggers",
+      "type": "table_spec",
+      "columns": [
+        { "key": "trigger", "label": "Trigger Event", "width": 3400 },
+        { "key": "action", "label": "Required Action", "width": 3400 },
+        { "key": "timeline", "label": "Timeline", "width": 1400 },
+        { "key": "link", "label": "Link", "width": 1260 }
+      ],
+      "ai_rows_prompt": "Generate 8\u201310 audit/re-evaluation triggers, each with the required action, timeline, and the QMS record it feeds: (1) scheduled periodic re-evaluation (critical=annual, major=biennial, minor=triennial \u2192 update {ref:SC-005}); (2) two consecutive lot rejections or PPM > threshold \u2192 issue SCAR {ref:SC-006}; (3) supplier-initiated change notification \u2192 change assessment {ref:RA-008}; (4) regulatory action against the supplier (FDA 483, warning letter, NB finding) \u2192 for-cause audit {ref:SC-007}; (5) post-market signal or complaint trend implicating supplied component \u2192 CAPA {ref:CA-001}; (6) ownership change / site relocation \u2192 re-qualification; (7) cybersecurity incident at software/SOUP supplier \u2192 risk re-assessment {ref:RD-007}; (8) failed surveillance audit; (9) recall or FSCA on supplier product; (10) loss of certification. Return JSON array."
+    },
+    {
+      "id": "traceability_capa",
+      "title": "7. Traceability to Corrective Action",
       "type": "ai_generated",
-      "section_prompt": "Draft a clear, regulatory-compliant purpose statement for the Supplier Qualification Procedure document under ISO 13485:2016 for a medical device company.",
-      "editable": true
+      "section_prompt": "Describe the closed loop: nonconforming supplier material \u2192 NCR {ref:CA-007} \u2192 SCAR {ref:SC-006} \u2192 CAPA {ref:CA-001}/{ref:CA-002} \u2192 effectiveness check {ref:CA-008} \u2192 update supplier scorecard {ref:SC-005} \u2192 if recurrent, downgrade or disqualify in {ref:SC-001}. Make clear that every SCAR opened against a critical supplier MUST spawn a CAPA, and that escaped product triggers risk file re-assessment {ref:RD-007} and, where reportable, vigilance {ref:CA-005}."
     },
     {
-      "id": "scope",
-      "title": "2. Scope",
-      "type": "variable",
-      "content": "This document establishes the supplier qualification procedure for {company_legal_name} and applies to all relevant QMS processes."
+      "id": "disqualification",
+      "title": "8. Disqualification & Transition",
+      "type": "ai_generated",
+      "section_prompt": "Define grounds for disqualification (failed CAPA effectiveness, loss of certification, repeated major nonconformity, ethical/regulatory breach), the approval authority, transition plan to alternate source, last-time-buy controls, and notification flow to Regulatory Affairs for change assessment {ref:RA-008}."
     },
     {
-      "id": "responsibilities",
-      "title": "3. Responsibilities",
-      "type": "static",
-      "content": "Prepared by: {default_prepared_by_role}\nApproved by: {default_approved_by_role}"
+      "id": "roles",
+      "title": "9. Roles & Responsibilities",
+      "type": "ai_generated",
+      "section_prompt": "Describe responsibilities: SCM Lead ({scm_lead_name}) owns sourcing and scorecards; QA Manager ({qa_manager_name}) owns qualification decisions and SCAR closure; QA Director approves critical-supplier addition/removal; Engineering supports first-article and change assessments."
     },
     {
-      "id": "approval_block",
-      "title": "",
-      "type": "approval_block"
-    },
-    {
-      "id": "revision_history",
-      "title": "Revision History",
-      "type": "table",
-      "table_source": "revision_history"
-    }
+      "id": "records",
+      "title": "10. Records & Retention",
+      "type": "ai_generated",
+      "section_prompt": "List records: SAQ, qualification report {ref:SC-003}, quality agreement, audit report {ref:SC-007}, scorecard {ref:SC-005}, SCAR {ref:SC-006}, ASL {ref:SC-001}. State retention per QP-004 (life of device + 10 years)." },
+    { "id": "approval_block", "title": "", "type": "approval_block" },
+    { "id": "revision_history", "title": "Revision History", "type": "table", "table_source": "revision_history" }
   ],
   "validation_rules": {
-    "emits": [
-      "sc-002_approval",
-      "role_names"
-    ],
-    "consumes": [
-      "qa_manager_role_name",
-      "company_legal_name"
-    ],
+    "emits": ["supplier_qualification_baseline", "supplier_classification_scheme"],
+    "consumes": ["company_legal_name", "qa_manager_name"],
     "required_sections_for_markets": {
-      "EU": [
-        "scope",
-        "purpose"
-      ],
-      "US": [
-        "scope",
-        "purpose"
-      ]
+      "EU": ["classification", "assessment_criteria", "audit_triggers", "traceability_capa"],
+      "US": ["classification", "assessment_criteria", "audit_triggers", "traceability_capa"]
     }
   },
-  "dependencies": [],
+  "dependencies": ["SC-001", "SC-003", "SC-005", "SC-006", "SC-007", "CA-001", "CA-007", "RD-007", "RA-008"],
   "output_config": {
     "page_size": "A4",
-    "header": "{company_legal_name} | SC-002 | Rev {revision_number}",
-    "footer": "CONFIDENTIAL \u2014 Controlled Document | ISO 13485:2016"
+    "header": "{company_legal_name} | SC-002 Supplier Qualification Procedure | Rev {revision_number}",
+    "footer": "CONFIDENTIAL \u2014 Controlled Document | ISO 13485:2016 \u00a77.4"
   }
 }
