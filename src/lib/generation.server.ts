@@ -781,6 +781,102 @@ function buildTraceXlsxAppend(
   for (const f of findings) find.addRow(f);
 }
 
+// ------- cross-document consistency checks --------------------------------
+
+/**
+ * Rules enforced across the entire generated package:
+ *
+ *  - Audit findings (AU-005 Audit Report, AU-006 Audit Finding & CAPA Linkage
+ *    Log) MUST trace to CAPA (CA-001 or CA-002) — an audit major/minor without
+ *    a CAPA linkage is an ISO 13485 §8.2.2 / §8.5.2 gap.
+ *  - Supplier actions (SC-005 Supplier Performance Monitoring, SC-006 SCAR)
+ *    MUST trace to CAPA (CA-001) — supplier escalations are CAPA inputs per
+ *    §7.4.1.
+ *  - CAPA records (CA-001, CA-002) SHOULD trace to the Risk Management File
+ *    (RD-007) so risk acceptability is re-evaluated when the CAPA changes
+ *    controls (ISO 14971 §10).
+ *  - Every {ref:CODE} placeholder in any document MUST resolve to a document
+ *    actually present in the master index (handled in generateBundle).
+ *  - Any unresolved [ref?:CODE] surviving the rewriter is a hard error.
+ */
+export function validateCrossDocumentConsistency(
+  docs: { code: string; sections: { section: TemplateSection; text: string; payload?: any }[] }[],
+  refsByDoc: Record<string, Set<string>>,
+  selectedSet: Set<string>,
+): ValidationFinding[] {
+  const findings: ValidationFinding[] = [];
+  const present = (code: string) => selectedSet.has(code);
+  const refs = (code: string) => refsByDoc[code] ?? new Set<string>();
+
+  // Rule 1 — audit -> CAPA linkage
+  for (const auditCode of ["AU-005", "AU-006"]) {
+    if (!present(auditCode)) continue;
+    const r = refs(auditCode);
+    if (!r.has("CA-001") && !r.has("CA-002")) {
+      findings.push({
+        document_code: auditCode,
+        severity: "error",
+        field: "capa_linkage",
+        message: `${auditCode} does not reference CA-001 (CAPA Procedure) or CA-002 (CAPA Form). Audit findings must be traceable to CAPA per ISO 13485 §8.2.2 / §8.5.2.`,
+      });
+    }
+  }
+
+  // Rule 2 — supplier actions -> CAPA linkage
+  for (const supCode of ["SC-005", "SC-006"]) {
+    if (!present(supCode)) continue;
+    const r = refs(supCode);
+    if (!r.has("CA-001")) {
+      findings.push({
+        document_code: supCode,
+        severity: "error",
+        field: "capa_linkage",
+        message: `${supCode} does not reference CA-001 (CAPA Procedure). Supplier nonconformities and SCARs must escalate into CAPA per ISO 13485 §7.4.1 / §8.5.2.`,
+      });
+    }
+  }
+
+  // Rule 3 — CAPA -> Risk Management File linkage (warning)
+  for (const capaCode of ["CA-001", "CA-002"]) {
+    if (!present(capaCode)) continue;
+    if (!present("RD-007")) continue; // can't link to what isn't in the run
+    if (!refs(capaCode).has("RD-007")) {
+      findings.push({
+        document_code: capaCode,
+        severity: "warning",
+        field: "risk_linkage",
+        message: `${capaCode} should reference RD-007 (Risk Management File) so risk acceptability is re-evaluated when CAPA changes controls (ISO 14971 §10).`,
+      });
+    }
+  }
+
+  // Rule 4 — unresolved [ref?:CODE] markers surviving the rewriter
+  const unresolvedRe = /\[ref\?:([A-Z]{2}-\d{3})\]/g;
+  for (const r of docs) {
+    const hits = new Set<string>();
+    const scan = (t: string) => {
+      let m: RegExpExecArray | null;
+      unresolvedRe.lastIndex = 0;
+      while ((m = unresolvedRe.exec(t))) hits.add(m[1]);
+    };
+    for (const s of r.sections) {
+      scan(s.text);
+      const rows = (s.payload?.rows ?? []) as Record<string, string>[];
+      for (const row of rows) for (const v of Object.values(row)) scan(String(v ?? ""));
+    }
+    for (const code of hits) {
+      findings.push({
+        document_code: r.code,
+        severity: "error",
+        field: "cross_reference",
+        message: `${r.code} contains an unresolved cross-reference to ${code}. Either add ${code} to this run or remove the reference.`,
+      });
+    }
+  }
+
+  return findings;
+}
+
 // ------- main entry -------------------------------------------------------
 
 export async function generateBundle(
@@ -838,13 +934,49 @@ export async function generateBundle(
       })),
     };
   }
+
+  // Capture every {ref:CODE} reference each rendered doc makes BEFORE rewrite,
+  // so we can run cross-document consistency rules in Pass 2.5.
+  const refsByDoc: Record<string, Set<string>> = {};
+  for (const r of renderedDocs) {
+    const refs = new Set<string>();
+    const scan = (text: string) => {
+      const re = /\{ref:([A-Z]{2}-\d{3})(?:#[a-zA-Z0-9_-]+)?\}/g;
+      let m: RegExpExecArray | null;
+      while ((m = re.exec(text))) refs.add(m[1]);
+    };
+    for (const s of r.sections) {
+      scan(s.text);
+      const rows = (s.payload?.rows ?? []) as Record<string, string>[];
+      for (const row of rows) for (const v of Object.values(row)) scan(String(v ?? ""));
+    }
+    refsByDoc[r.code] = refs;
+  }
+
   for (const r of renderedDocs) {
     r.sections = r.sections.map((s) => ({
       section: s.section,
       text: rewriteCrossRefs(s.text, registry, vars),
-      payload: s.payload,
+      payload: s.payload
+        ? {
+            ...s.payload,
+            rows: ((s.payload.rows ?? []) as Record<string, string>[]).map((row) => {
+              const o: Record<string, string> = {};
+              for (const k of Object.keys(row))
+                o[k] = rewriteCrossRefs(String(row[k] ?? ""), registry, vars);
+              return o;
+            }),
+          }
+        : s.payload,
     }));
   }
+
+  // ---- Pass 2.5: cross-document consistency checks -----------------------
+  const crossFindings = validateCrossDocumentConsistency(
+    renderedDocs.map((r) => ({ code: r.code, sections: r.sections })),
+    refsByDoc,
+    selectedSet,
+  );
 
   // ---- Build .docx per document ------------------------------------------
   const entries: {
@@ -871,8 +1003,25 @@ export async function generateBundle(
   }
   entries.sort((a, b) => a.code.localeCompare(b.code));
 
-  // Carry through non-blocking pre-render findings (warnings/info) into the run.
-  const findings = preFindings.filter((f) => f.severity !== "error");
+  // Master-index coverage check: every code referenced by any doc must appear
+  // in the final entries list (i.e. the rendered+packaged master index).
+  const indexCodes = new Set(entries.map((e) => e.code));
+  for (const [doc, refs] of Object.entries(refsByDoc)) {
+    for (const ref of refs) {
+      if (!indexCodes.has(ref)) {
+        crossFindings.push({
+          document_code: doc,
+          severity: "error",
+          field: "master_index",
+          message: `${doc} references ${ref} but ${ref} is not present in the master document index (00_Master_Index.xlsx).`,
+        });
+      }
+    }
+  }
+
+  // Carry through non-blocking pre-render findings (warnings/info) into the run,
+  // plus the cross-document consistency findings.
+  const findings = [...preFindings.filter((f) => f.severity !== "error"), ...crossFindings];
 
   // master index workbook (index + traceability + validation)
   const wb = new ExcelJS.Workbook();
