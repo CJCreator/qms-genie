@@ -446,7 +446,11 @@ function buildDocx(
       section.type === "traceability_matrix" ||
       (section.type === "table" && payload?.columns && payload?.rows)
     ) {
-      const cols = (section as any).columns ?? payload?.columns;
+      const cols = ((section as any).columns ?? payload?.columns) as {
+        key: string;
+        label: string;
+        width?: number;
+      }[];
       const totalW = 9360;
       const baseW = Math.floor(totalW / cols.length);
       const colWidths = cols.map((_, i) =>
