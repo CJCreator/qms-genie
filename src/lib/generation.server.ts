@@ -443,9 +443,10 @@ function buildDocx(
     } else if (
       section.type === "table_spec" ||
       section.type === "risk_table" ||
-      section.type === "traceability_matrix"
+      section.type === "traceability_matrix" ||
+      (section.type === "table" && payload?.columns && payload?.rows)
     ) {
-      const cols = section.columns;
+      const cols = (section as any).columns ?? payload?.columns;
       const totalW = 9360;
       const baseW = Math.floor(totalW / cols.length);
       const colWidths = cols.map((_, i) =>
