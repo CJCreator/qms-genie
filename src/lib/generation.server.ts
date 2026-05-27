@@ -279,10 +279,36 @@ Instruction: ${sec.ai_rows_prompt}`;
         payload: { rows },
       });
     } else if (sec.type === "table") {
-      out.push({
-        section: sec,
-        text: `[${sec.table_source} table — maintained as controlled record]`,
-      });
+      // Render controlled-record tables (revision history, distribution, etc.)
+      // as actual DOCX tables with seeded initial rows. Reviewers fill in
+      // subsequent rows on each controlled change.
+      if (sec.table_source === "revision_history") {
+        out.push({
+          section: sec,
+          text: `Rev ${vars.revision_number} | ${vars.effective_date} | ${vars.qa_manager_name} | Initial issue of ${template.meta.document_code}`,
+          payload: {
+            rows: [
+              {
+                rev: vars.revision_number,
+                date: vars.effective_date,
+                author: vars.qa_manager_name,
+                description: `Initial issue of ${template.meta.document_code} — ${template.meta.document_name}.`,
+              },
+            ],
+            columns: [
+              { key: "rev", label: "Rev" },
+              { key: "date", label: "Effective Date" },
+              { key: "author", label: "Author" },
+              { key: "description", label: "Change Description" },
+            ],
+          },
+        });
+      } else {
+        out.push({
+          section: sec,
+          text: `[${sec.table_source} table — maintained as controlled record]`,
+        });
+      }
     }
   }
   return out;
@@ -417,9 +443,14 @@ function buildDocx(
     } else if (
       section.type === "table_spec" ||
       section.type === "risk_table" ||
-      section.type === "traceability_matrix"
+      section.type === "traceability_matrix" ||
+      (section.type === "table" && payload?.columns && payload?.rows)
     ) {
-      const cols = section.columns;
+      const cols = ((section as any).columns ?? payload?.columns) as {
+        key: string;
+        label: string;
+        width?: number;
+      }[];
       const totalW = 9360;
       const baseW = Math.floor(totalW / cols.length);
       const colWidths = cols.map((_, i) =>
