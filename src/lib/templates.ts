@@ -93,17 +93,23 @@ export const TEMPLATES_BY_CODE: Record<string, DocumentTemplate> = Object.fromEn
 
 export const DEPARTMENTS: { code: string; name: string }[] = (() => {
   const map: Record<string, string> = {
+    IA: "Internal Audit",
     AU: "Internal Audit",
     CA: "CAPA & Complaints",
+    CAPA: "CAPA & Complaints",
     HI: "HIMS / Software Validation",
+    HIMS: "HIMS / Software Validation",
     HR: "Human Resources & Training",
     MF: "Manufacturing",
+    MFG: "Manufacturing",
     QC: "Quality Control",
     QF: "Quality Forms",
     QP: "Quality Procedures",
+    QMS: "Quality Management System",
     RA: "Regulatory Affairs",
     RD: "Research & Development",
     SC: "Supply Chain",
+    SCM: "Supply Chain",
     SW: "Software / Cybersecurity",
   };
   const seen = new Set<string>();
@@ -124,19 +130,28 @@ export const DEPARTMENTS: { code: string; name: string }[] = (() => {
 const SPINE = ["QP-001", "QP-002", "QP-003", "QP-004"];
 
 // Department-level common parents (department code -> codes every doc in that
-// department depends on, in addition to the spine).
+// department depends on, in addition to the spine). Keys cover BOTH the
+// 2-letter dept codes and the longer codes used in the JSON templates
+// (IA/SCM/HIMS/MFG/QMS/CAPA), so dependency injection works regardless of
+// which spelling a template uses.
 const DEPT_PARENTS: Record<string, string[]> = {
   AU: ["QP-005", "AU-001"],
+  IA: ["QP-005", "AU-001"],
   CA: ["CA-001", "CA-003"],
+  CAPA: ["CA-001", "CA-003"],
   HI: ["HI-001", "HI-003", "QP-006"],
+  HIMS: ["HI-001", "HI-003", "QP-006"],
   HR: ["HR-001", "HR-002"],
   MF: ["MF-001", "QC-001"],
+  MFG: ["MF-001", "QC-001"],
   QC: ["QC-001"],
   QF: ["QP-005"],
   QP: [],
+  QMS: [],
   RA: ["RA-001", "QP-006"],
   RD: ["RD-001", "RD-007"],
   SC: ["SC-002"],
+  SCM: ["SC-002"],
   SW: ["SW-001", "RD-007"],
 };
 
